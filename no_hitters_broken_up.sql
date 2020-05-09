@@ -21,7 +21,7 @@ drop table t_nonos_blown;
 create table t_nonos_blown as
     select pit_id, t_first_hits.game_id as game_id, t_first_hits.inn_ct as inn_ct
     from event inner join t_first_hits
-    on event.game_id=t_first_hits.game_id and event.event_id = t_first_hits.event_id
+        on event.game_id=t_first_hits.game_id and event.event_id = t_first_hits.event_id
 ;
 
 # summarize and format the pitchers that have blown multiple in the 9th or later
@@ -29,12 +29,12 @@ select name_first, name_last, num, least_recent, most_recent
 from  # group by pitcher, and get the dates from retrosheet.game
 (   select pit_id, min(game_dt) as least_recent, max(game_dt) as most_recent, count(*) as num
     from t_nonos_blown inner join retrosheet.game
-    on t_nonos_blown.game_id=retrosheet.game.game_id
-	where inn_ct>8
+        on t_nonos_blown.game_id=retrosheet.game.game_id
+    where inn_ct>8
     group by pit_id
 ) x
 inner join baseballdatabank.people # get the first and last names
-on baseballdatabank.people.retro_id=x.pit_id
+    on baseballdatabank.people.retro_id=x.pit_id
 where num>1
 order by num desc, most_recent, name_last
 ;
