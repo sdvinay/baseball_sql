@@ -14,10 +14,8 @@ order by game_dt desc
 ;
 
 
-
 select year(game_dt) as yr, count(*) as num
-from t_cgs_zero_ttos inner join baseballdatabank.people
-	on baseballdatabank.people.retro_id=t_cgs_zero_ttos.player_id
+from t_cgs_zero_ttos
 group by yr
 order by yr desc
 ;
