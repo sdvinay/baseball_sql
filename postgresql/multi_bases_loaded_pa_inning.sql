@@ -3,7 +3,7 @@
 
 
 -- find all instances of multi bases-loaded PA in one inning
--- this takes ~15 seconds, so create a temp table for these
+-- this takes ~6 seconds, so create a temp table for these
 drop table t_multi_bl_pa;
 create table t_multi_bl_pa as
 select bl_multi.*, game_dt, away_team_id, home_team_id 
@@ -28,20 +28,22 @@ from (
 	select bat_id, count(game_id) as num, min(game_dt) as earliest, max(game_dt) as latest
 	from t_multi_bl_pa
 	group by bat_id
+	having count(game_id)>1
 ) by_batter
 inner join baseballdatabank_people
 on baseballdatabank_people.retro_id = by_batter.bat_id
 order by num desc, latest;
 
--- find bl_multi's where the batter homered in the first PA (actually, event)
-with gs_then_bl_in_inning as (
+-- find bl_multi's where the batter homered in the first PA
+-- (It's actually the first *event*, so it's possible we could miss an instance)
+with gs_then_bl_in_inning as ( -- this query finds the instances
 	select t_multi_bl_pa.*
 	from t_multi_bl_pa
 	inner join retrosheet_event
 	on t_multi_bl_pa.game_id = retrosheet_event.game_id and t_multi_bl_pa.first_event = retrosheet_event.event_id
 	where retrosheet_event.event_cd=23 -- event code 23 is a HR
 )
-select name_first, name_last, game_dt, inn_ct,
+select name_first, name_last, game_dt, inn_ct, -- this formats the output
 	case when bat_home_id=true then home_team_id else away_team_id end as tm,
 	case when bat_home_id=true then away_team_id else home_team_id end as opp
 from gs_then_bl_in_inning
