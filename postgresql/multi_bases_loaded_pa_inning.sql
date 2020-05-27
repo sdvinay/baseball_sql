@@ -7,12 +7,12 @@
 drop table t_multi_bl_pa;
 create table t_multi_bl_pa as 
 with multi_bl_pa as ( -- this query finds the instances
-	select game_id, bat_home_id, inn_ct, bat_id,
+	select game_id, inn_ct, bat_home_id, bat_id,
 		min(event_id) as first_event, max(event_id) as last_event
 	from retrosheet_event 
 	where start_bases_cd=7 -- start_bases_cd=7 means bases loaded
-	group by game_id, bat_home_id, inn_ct, bat_id
-	having (max(event_id)-min(event_id))>8  -- look for a gap of >8 in event_id, to get distinct PAs
+	group by game_id, inn_ct, bat_home_id, bat_id -- same half-inning, same batter
+	having (max(event_id)-min(event_id))>8  -- a gap of >8 in event_id means distinct PAs
 )
 -- this adds the game dt and teams
 select multi_bl_pa.*, game_dt, away_team_id, home_team_id 
