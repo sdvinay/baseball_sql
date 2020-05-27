@@ -2,20 +2,23 @@
 --   e.g., who has had the opportunity to do a Tatis?
 
 
--- find all instances of multi bases-loaded PA in one inning
--- this takes ~6 seconds, so create a temp table for these
+-- find all instances of multiple bases-loaded PA in one inning
+-- this takes ~5 seconds, so create a temp table for these
 drop table t_multi_bl_pa;
-create table t_multi_bl_pa as
-select bl_multi.*, game_dt, away_team_id, home_team_id 
-from (	
-	select game_id, bat_home_id, inn_ct, bat_id, count(distinct event_id) as num, 
+create table t_multi_bl_pa as 
+with multi_bl_pa as ( -- this query finds the instances
+	select game_id, bat_home_id, inn_ct, bat_id,
 		min(event_id) as first_event, max(event_id) as last_event
 	from retrosheet_event 
 	where start_bases_cd=7 -- start_bases_cd=7 means bases loaded
 	group by game_id, bat_home_id, inn_ct, bat_id
 	having (max(event_id)-min(event_id))>8  -- look for a gap of >8 in event_id, to get distinct PAs
-) bl_multi
-inner join retrosheet_game on retrosheet_game.game_id = bl_multi.game_id;
+)
+-- this adds the game dt and teams
+select multi_bl_pa.*, game_dt, away_team_id, home_team_id 
+from multi_bl_pa
+inner join retrosheet_game 
+on retrosheet_game.game_id = multi_bl_pa.game_id;
 
 -- how frequently does this happen?
 select * from t_multi_bl_pa order by game_dt;
@@ -24,13 +27,13 @@ select * from t_multi_bl_pa where extract(year from game_dt)>=1999 order by game
 
 -- find players who had multiple bl_multi's in their career
 select name_first, name_last, num, earliest, latest 
-from (	
+from (	-- this query finds the instances
 	select bat_id, count(game_id) as num, min(game_dt) as earliest, max(game_dt) as latest
 	from t_multi_bl_pa
 	group by bat_id
 	having count(game_id)>1
 ) by_batter
-inner join baseballdatabank_people
+inner join baseballdatabank_people -- this adds the players' names
 on baseballdatabank_people.retro_id = by_batter.bat_id
 order by num desc, latest;
 
