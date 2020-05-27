@@ -16,7 +16,7 @@ select bl_multi.*, game_dt, away_team_id, home_team_id from
 		where start_bases_cd=7 -- start_bases_cd=7 means bases loaded
 		group by game_id, bat_home_id, inn_ct, bat_id
 	) bl_counts
-	where num >1 and last_event-first_event>7  -- look for a gap of >7 in event_id, to get distinct PAs
+	where num>1 and (last_event-first_event)>8  -- look for a gap of >8 in event_id, to get distinct PAs
 ) bl_multi
 inner join retrosheet_game on retrosheet_game.game_id = bl_multi.game_id;
 
