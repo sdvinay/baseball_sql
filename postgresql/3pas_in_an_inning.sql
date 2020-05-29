@@ -16,8 +16,8 @@ superset as (select game_id, inn_ct, bat_id, event_id, bat_home_id, event_outs_c
                 and bat_id in (select bat_id from batters)
             )
 
-select * 
-  from ( -- and now narrow to the events that actually count in the 3PA innings
+select * -- and now narrow to the events that actually count in the 3PA innings 
+  from (
 		select min(event_id) over (partition by game_id, inn_ct, bat_id) as first_event,
 			   max(event_id) over (partition by game_id, inn_ct, bat_id) as last_event,
 			   superset.*
