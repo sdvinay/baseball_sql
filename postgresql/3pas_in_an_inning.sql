@@ -2,6 +2,7 @@
 -- What are the best 3-PA innings, and the worst?
 
 -- Collect all the event rows that correspond to 3 PAs in one inning
+-- This takes ~10 sec, so let's use a temp table
   drop table t_3pas_in_one_inning;
 create table t_3pas_in_one_inning as
 
@@ -22,7 +23,7 @@ select * -- and now narrow to the events that actually count in the 3PA innings
                  superset.*
             from superset
        ) as foo
- where (last_event-first_event)>16
+ where (last_event-first_event)>=18 -- a gap of >=18 in event_id implies three distinct PAs
 ;
 
 select * from t_3pas_in_one_inning;
