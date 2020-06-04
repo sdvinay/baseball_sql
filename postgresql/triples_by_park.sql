@@ -19,7 +19,23 @@ with triples as
 (	  select game_id, park_id, home_team_id, away_team_id, away_3b_ct, home_3b_ct, extract(year from game_dt) as yr
 	    from retrosheet_game
 	   where extract(year from game_dt)>=2010
+),
+home_triples as
+(     select home_team_id, park_id, yr, count(game_id) as gms, sum(home_3b_ct) as home_3b, sum(away_3b_ct) as away_3b
+        from triples
+    group by home_team_id, park_id, yr
+),
+away_triples as
+(     select away_team_id, yr, count(game_id) as gms, sum(home_3b_ct) as home_3b, sum(away_3b_ct) as away_3b
+        from triples
+    group by away_team_id, yr
+),
+team_seasons as
+(     select h.home_team_id as team_id, h.park_id, h.yr, h.gms as gms_h, h.home_3b+h.away_3b as triples_h, 
+             a.gms as gms_a, a.home_3b+a.away_3b as triples_a
+        from home_triples as h
+  inner join away_triples as a
+          on h.home_team_id=a.away_team_id and h.yr=a.yr
 )
-select home_team_id, park_id, yr, count(game_id) as gms, sum(home_3b_ct) as home_3b, sum(away_3b_ct) as away_3b
-from triples
-group by home_team_id, park_id, yr
+select *, (triples_h::decimal/gms_h::decimal)/(triples_a::decimal/gms_a::decimal) as pf
+  from team_seasons where gms_h>10 and gms_a>0 and triples_a>0
