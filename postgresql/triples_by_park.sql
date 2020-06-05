@@ -36,6 +36,15 @@ team_seasons as
         from home_triples as h
   inner join away_triples as a
           on h.home_team_id=a.away_team_id and h.yr=a.yr
+),
+parks_aggregated as
+(
+      select team_id, park_id, sum(gms_h) as gms_h, sum(triples_h) as triples_h, sum(gms_a) as gms_a, 
+             sum(triples_a) as triples_a, min(yr) as yr_start, max(yr) as yr_last
+        from team_seasons
+       where gms_h>10 and gms_a>0 and triples_a>0
+    group by team_id, park_id
 )
-select *, (triples_h::decimal/gms_h::decimal)/(triples_a::decimal/gms_a::decimal) as pf
-  from team_seasons where gms_h>10 and gms_a>0 and triples_a>0
+  select *, round((triples_h::decimal/gms_h::decimal)/(triples_a::decimal/gms_a::decimal), 2) as pf
+    from parks_aggregated
+order by pf desc
