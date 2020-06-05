@@ -6,11 +6,19 @@
 former and current New York-based MLB teams- the Mets, Yankees, Dodgers and Giants. 
 The others are Ricky Ledée and José Vizcaíno.
 */
+-- initial quick-and-dirty method
 select distinct player_id from baseballdatabank_batting where team_id='LAN' INTERSECT
 select distinct player_id from baseballdatabank_batting where team_id='SFN' INTERSECT
 select distinct player_id from baseballdatabank_batting where team_id='NYA' INTERSECT
 select distinct player_id from baseballdatabank_batting where team_id='NYN';
 
+-- scalable method
+  select player_id, count(distinct team_id) as team_ct
+    from baseballdatabank_batting 
+   where team_id in ('LAN', 'SFN', 'NYA', 'NYN')
+group by player_id
+  having count(distinct team_id)=4
+;
 
 /* He is one of only five Major League Baseball players to hit two pinch-hit grand slams 
 in the same season. The others are Davey Johnson of the Philadelphia Phillies, Mike Ivie 
