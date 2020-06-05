@@ -29,15 +29,15 @@ of the Atlanta Braves.[18]
 with 
 ph_slams as (select bat_id, game_id  from retrosheet_event where ph_fl is true and rbi_ct=4),
 multi_ph_slam_seasons as
-(     select bat_id, extract(year from game_dt) as yr, count(retrosheet_game.game_dt) as num 
+(     select bat_id, extract(year from r.game_dt) as yr, count(r.game_dt) as ph_slam_ct 
         from ph_slams
-  inner join retrosheet_game 
-          on ph_slams.game_id = retrosheet_game.game_id
-    group by bat_id, extract(year from game_dt)
+  inner join retrosheet_game as r
+          on ph_slams.game_id = r.game_id
+    group by bat_id, extract(year from r.game_dt)
       having count(*)>1
 )
 -- Now get the name and format the output
-    select p.name_first, p.name_last, bat_id, yr, num 
+    select p.name_first, p.name_last, yr, ph_slam_ct 
       from multi_ph_slam_seasons
 inner join baseballdatabank_people as p
         on p.retro_id = multi_ph_slam_seasons.bat_id
