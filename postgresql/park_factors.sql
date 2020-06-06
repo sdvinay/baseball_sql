@@ -69,13 +69,15 @@ adjusted_pfs as -- and adjust the PF based on road weighted avg PF
                  group by away_team_id
              )
 
-      select i.*, r.weighted_avg_road_pf, i.pf*r.weighted_avg_road_pf as adjusted_pf 
+      select i.team_id, i.park_id, 1 as iteration, i.pf as raw_pf, r.weighted_avg_road_pf, i.pf*r.weighted_avg_road_pf as adjusted_pf 
         from initial_pfs as i
   inner join road_weighted_avg_pfs as r
           on i.team_id = r.away_team_id
 )
 -- Now format the output
-  select team_id, park_id, gms_h, yr_start, yr_last, round(pf, 2) as pf,
-         round(weighted_avg_road_pf, 2) as weighted_avg_road_pf, round(adjusted_pf, 2) as adjusted_pf
-    from adjusted_pfs
-order by adjusted_pf desc
+    select tot.*, iteration, round(raw_pf, 2) as raw_pf,
+           round(weighted_avg_road_pf, 2) as weighted_avg_road_pf, round(adjusted_pf, 2) as adjusted_pf
+      from adjusted_pfs as pf
+inner join park_aggregated_totals as tot
+        on tot.team_id=pf.team_id and tot.park_id=pf.park_id
+  order by iteration desc, adjusted_pf desc
