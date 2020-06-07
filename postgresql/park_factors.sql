@@ -76,7 +76,7 @@ adj as  -- need to add this scoping level because of "with recursive" requiremen
                  group by away_team_id, iteration
              )
 
-          select i.team_id, i.park_id, r.iteration+1 as iteration, i.pf as raw_pf, r.weighted_avg_road_pf, i.pf*r.weighted_avg_road_pf as adjusted_pf
+          select i.team_id, i.park_id, r.iteration+1 as iteration, i.pf as raw_pf, r.weighted_avg_road_pf, i.pf*r.weighted_avg_road_pf as pf
             from initial_pfs as i
       inner join road_weighted_avg_pfs as r
               on i.team_id = r.away_team_id
