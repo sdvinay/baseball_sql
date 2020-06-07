@@ -24,7 +24,7 @@ team_seasons as
                  group by away_team_id, yr
              )
 
-      select h.home_team_id as team_id, h.park_id, h.yr, h.gms as gms_h, h.home_3b+h.away_3b as instances_h, 
+      select h.home_team_id as team_id, h.park_id, h.yr, h.gms as gms_h, h.home_3b+h.away_3b as instances_h,
              a.gms as gms_a, a.home_3b+a.away_3b as instances_a
         from home_game_totals as h
   inner join away_game_totals as a
@@ -32,7 +32,7 @@ team_seasons as
 ),
 -- Now aggregate across years
 park_aggregated_totals as
-(     select team_id, park_id, sum(gms_h) as gms_h, sum(instances_h) as instances_h, sum(gms_a) as gms_a, 
+(     select team_id, park_id, sum(gms_h) as gms_h, sum(instances_h) as instances_h, sum(gms_a) as gms_a,
              sum(instances_a) as instances_a, min(yr) as yr_start, max(yr) as yr_last
         from team_seasons
        where gms_h>10 and gms_a>0 and instances_a>0
@@ -49,35 +49,48 @@ initial_pfs as
 road_game_counts as -- count road games for each team in each park
 (
       select away_team_id, park_id, count(distinct game_id) as road_game_ct
-        from raw_game_totals 
+        from raw_game_totals
     group by away_team_id, park_id
 ),
-adjusted_pfs as -- and adjust the PF based on road weighted avg PF
+adj as  -- need to add this scoping level because of "with recursive" requirements
 (
-        with road_games_with_pfs as -- add in the initial PF for each matchup
+    with recursive adjusted_pfs as -- recursive PF adjustment based on road weighted avg PF
+    (
+        select team_id, park_id, 0 as iteration, pf as raw_pf, 1.00 as weighted_avg_road_pf, pf
+          from initial_pfs as i
+
+        union
+        ( with
+             road_games_with_pfs as -- add in the initial PF for each matchup
              (
-                   select r.away_team_id, r.park_id, r.road_game_ct, pf 
-                     from road_game_counts as r
-               inner join initial_pfs
-                       on r.park_id = initial_pfs.park_id
+                   select r.away_team_id, r.park_id, r.road_game_ct, pf, iteration
+                     from adjusted_pfs as pfs
+               inner join road_game_counts as r
+                       on r.park_id = pfs.park_id
              ),
              road_weighted_avg_pfs as -- compute the weighted avg for each team's road schedule
              (
-                   select away_team_id, sum(road_game_ct) as road_game_ct, sum(road_game_ct*pf) as sum_pf, 
-                          sum(road_game_ct*pf)/sum(road_game_ct) as weighted_avg_road_pf
+                   select away_team_id, sum(road_game_ct) as road_game_ct, sum(road_game_ct*pf) as sum_pf,
+                          sum(road_game_ct*pf)/sum(road_game_ct) as weighted_avg_road_pf, iteration
                      from road_games_with_pfs
-                 group by away_team_id
+                 group by away_team_id, iteration
              )
 
-      select i.team_id, i.park_id, 1 as iteration, i.pf as raw_pf, r.weighted_avg_road_pf, i.pf*r.weighted_avg_road_pf as adjusted_pf 
-        from initial_pfs as i
-  inner join road_weighted_avg_pfs as r
-          on i.team_id = r.away_team_id
+          select i.team_id, i.park_id, r.iteration+1 as iteration, i.pf as raw_pf, r.weighted_avg_road_pf, i.pf*r.weighted_avg_road_pf as adjusted_pf
+            from initial_pfs as i
+      inner join road_weighted_avg_pfs as r
+              on i.team_id = r.away_team_id
+           where iteration <=5
+        )
+    )
+    select * from adjusted_pfs
 )
+
 -- Now format the output
     select tot.*, iteration, round(raw_pf, 2) as raw_pf,
-           round(weighted_avg_road_pf, 2) as weighted_avg_road_pf, round(adjusted_pf, 2) as adjusted_pf
-      from adjusted_pfs as pf
+           round(weighted_avg_road_pf, 2) as weighted_avg_road_pf, round(pf, 3) as pf
+      from adj as pf
 inner join park_aggregated_totals as tot
         on tot.team_id=pf.team_id and tot.park_id=pf.park_id
-  order by iteration desc, adjusted_pf desc
+
+  order by iteration desc, pf desc
