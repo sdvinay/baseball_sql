@@ -74,3 +74,17 @@ inner join baseballdatabank_people as p
         on sls.player_id = p.retro_id
      where num_streaks>1
   order by num_streaks desc, longest_streak desc
+;
+
+-- summarize by year
+    select yr,
+           count(*)                                    as streaks_1 ,
+           sum(case when length>=2  then 1 else 0 end) as streaks_2 ,
+           sum(case when length>=10 then 1 else 0 end) as streaks_10,
+           sum(case when length>=20 then 1 else 0 end) as streaks_20,
+           sum(case when length>=30 then 1 else 0 end) as streaks_30,
+           max(length)                                 as longest_streak
+      from (select *, extract(year from start_dt) as yr from t_hitting_streaks) by_year
+  group by yr
+  order by yr desc
+
