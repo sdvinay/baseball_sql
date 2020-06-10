@@ -9,7 +9,7 @@ thgs_annotated as -- add the lg_id and game_dt
 (       select t.*, g.game_dt as game_dt,
                (case when g.home_team_id=t.team_id then g.home_team_league_id else g.away_team_league_id end) as lg_id
           from thgs as t
-    inner join retrosheet_game g on g.game_id=t.game_id
+    inner join retrosheet_game as g on g.game_id=t.game_id
 ),
 thgs_lg_cts as
 (  -- can't do COUNT DISTINCT in a window function, so we have to do this two-step hack to add columns
@@ -18,12 +18,13 @@ thgs_lg_cts as
                sum(new_lg) over (partition by player_id) as lg_ct
           from (select a.*,
                        (case when (row_number() over( partition by player_id, lg_id) = 1) then 1 else 0 end) as new_lg
-                  from thgs_annotated a
+                  from thgs_annotated as a
                ) x
 ),
 players_both_lgs as
 (
-        select player_id, max(game_dt) as achieved_dt from thgs_lg_cts
+        select player_id, max(game_dt) as achieved_dt
+          from thgs_lg_cts
          where lg_ct>1 and new_lg=1
       group by player_id
 )
