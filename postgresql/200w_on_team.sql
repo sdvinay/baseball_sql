@@ -4,8 +4,7 @@ with
 -- start with a list of pitchers who achieved the feat
 won200_pitchers as
 (
-    with
-    won200_raw as
+    with won200_raw as -- start by finding the players with 200W for a franchise
     (           select player_id, t.franch_id, sum(p.w) as wins_tm_ct
                   from baseballdatabank_pitching as p
             inner join baseballdatabank_teams as t
@@ -13,6 +12,7 @@ won200_pitchers as
               group by player_id, t.franch_id
                 having sum(p.w)>=200
     )
+            -- then add the retro_id and name
         select p.retro_id, p.player_id, p.name_first, p.name_last, w.franch_id, w.wins_tm_ct
           from won200_raw as w
     inner join baseballdatabank_people as p
