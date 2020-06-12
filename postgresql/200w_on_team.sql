@@ -62,12 +62,19 @@ win_200th as
                 on s.retro_id = g.winning_pitcher_id and s.year_id=extract(year from g.date)
            )
     select * from wins_in_season_200th where win_in_season=wins_needed
-)
--- put together the pitcher info with the date from the 200th win, and format the output
-    select concat(p.name_first, ' ', p.name_last) as pitcher_name, p.franch_id, p.wins_tm_ct,
-           p.year_id as year_200th, w.date as date_200th
+),
+results as
+(
+-- put together the pitcher info with the date from the 200th win (or the year if we don't have the date)
+    select p.name_first, p.name_last, p.franch_id, p.wins_tm_ct,
+           p.year_id as year_200th, w.date as date_200th_incomplete,
+           case when w.date is null then concat(cast(p.year_id as varchar(10)), '-??-??') else cast(w.date as varchar(10)) end as date_200th
       from season_200th as p
  left join win_200th as w
         on w.player_id = p.player_id
   order by wins_tm_ct desc
+)
+-- and (sigh) concat it all into one string for copy-paste
+select concat(rpad(concat(name_first, ' ', name_last), 21, '.'), franch_id, '   ', wins_tm_ct, '  ', date_200th)
+  from results
 ;
