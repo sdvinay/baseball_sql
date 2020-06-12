@@ -32,7 +32,7 @@ season_200th as
         ),
         seasons_with_franch as
         (
-                select s.*, p.retro_id from seasons_all as s
+                select s.*, p.retro_id, p.name_first, p.name_last, p.wins_tm_ct from seasons_all as s
             inner join won200_pitchers as p
                     on s.player_id = p.player_id and s.franch_id = p.franch_id
         ),
@@ -54,7 +54,7 @@ season_200th as
 ),
 win_200th as
 (
-    with wins_in_season_200th as
+      with wins_in_season_200th as
            (select s.*, g.date, g.double_header,
                    row_number() over (partition by player_id order by date, double_header) as win_in_season
               from season_200th as s
@@ -64,10 +64,10 @@ win_200th as
     select * from wins_in_season_200th where win_in_season=wins_needed
 )
 -- put together the pitcher info with the date from the 200th win, and format the output
-    select concat(p.name_first, ' ', p.name_last) as pitcher_name,
-           p.franch_id, w.date as date_200th, p.wins_tm_ct
-      from win_200th as w
-inner join won200_pitchers as p
+    select concat(p.name_first, ' ', p.name_last) as pitcher_name, p.franch_id, p.wins_tm_ct,
+           p.year_id as year_200th, w.date as date_200th
+      from season_200th as p
+ left join win_200th as w
         on w.player_id = p.player_id
   order by wins_tm_ct desc
 ;
