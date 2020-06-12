@@ -17,13 +17,13 @@ beat_30tms_pitchers as -- find the pitchers who've beaten all 30 teams
        having count(distinct opp_franch_id)=30
 ),
 first_win_vs_tm as -- find each pitcher's first win against each team
-(      select  *
-          from (select *,
-                       row_number() over (partition by win_pit_id, opp_franch_id order by game_dt, game_ct) as win_vs_tm
-                  from wins_annotated
-                 where win_pit_id in (select * from beat_30tms_pitchers)
-               ) x
-         where win_vs_tm=1
+(      select *
+         from (select *,
+                      row_number() over (partition by win_pit_id, opp_franch_id order by game_dt, game_ct) as win_vs_tm
+                 from wins_annotated
+                where win_pit_id in (select * from beat_30tms_pitchers)
+              ) x
+        where win_vs_tm=1
 ),
 last_first_wins as -- the last one for each pitcher is the day they joined the club
 (      select win_pit_id, max(game_dt) as date_30th_franchise_beaten
