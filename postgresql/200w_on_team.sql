@@ -23,8 +23,10 @@ season_200th as
 (
     with running_win_totals as -- by first putting together season-by-season running wins totals
     (
-        with seasons_all as
-        (       select player_id, p.team_id, p.year_id, p.w, t.franch_id from baseballdatabank_pitching as p
+        with 
+        seasons_all as
+        (       select player_id, p.team_id, p.year_id, p.w, t.franch_id
+                  from baseballdatabank_pitching as p
             inner join baseballdatabank_teams as t
                     on p.team_id=t.team_id and p.year_id=t.year_id
                  where p.player_id in (select player_id from won200_pitchers)
@@ -32,7 +34,8 @@ season_200th as
         ),
         seasons_with_franch as
         (
-                select s.*, p.retro_id, p.name_first, p.name_last, p.wins_tm_ct from seasons_all as s
+                select s.*, p.retro_id, p.name_first, p.name_last, p.wins_tm_ct
+                  from seasons_all as s
             inner join won200_pitchers as p
                     on s.player_id = p.player_id and s.franch_id = p.franch_id
         ),
