@@ -8,20 +8,25 @@ with results as
      where extract(year from game_dt)>=2000
  ),
 team_results as
-(   select game_id, away_team_id as team_id, game_dt, game_ct, 1-home_win as win, yr
-      from results
-     UNION
-    select game_id, home_team_id as team_id, game_dt, game_ct, home_win as win, yr
-      from results
+(   select tr.*, t.franch_id as franch_id
+      from ( select game_id, away_team_id as team_id, game_dt, game_ct, 1-home_win as win, yr
+               from results
+              UNION
+             select game_id, home_team_id as team_id, game_dt, game_ct, home_win as win, yr
+               from results
+           ) tr
+inner join baseballdatabank_teams as t
+        on tr.team_id=t.team_id_retro and tr.yr=t.year_id
+
 ),
 team_game_prediction_factors as
 (
 -- Calculate each type of prediction factor, then UNION them into one common table
     with numbered_game_results as
         (   select *
-                   , row_number() over (partition by team_id order by game_dt, game_ct) as game_num
-                   , sum(win)     over (partition by team_id order by game_dt, game_ct) as wins_running_total
-                   , row_number() over (partition by team_id, yr order by game_dt, game_ct) as season_game_num
+                   , row_number() over (partition by franch_id     order by game_dt, game_ct) as game_num
+                   , sum(win)     over (partition by franch_id     order by game_dt, game_ct) as wins_running_total
+                   , row_number() over (partition by franch_id, yr order by game_dt, game_ct) as season_game_num
               from team_results
         ),
 
@@ -42,7 +47,7 @@ team_game_prediction_factors as
         (   select tr.*, (t.w::decimal/t.g::decimal) as prevyr_wpct
               from team_results as tr
         inner join baseballdatabank_teams as t
-                on tr.team_id = t.team_id_retro
+                on tr.franch_id = t.franch_id
                    and tr.yr = t.year_id+1 -- this will miss teams that change ID yr over yr
         ),
      records_prev_162 as
@@ -53,7 +58,7 @@ team_game_prediction_factors as
                                   , r.wins_running_total-prev.wins_running_total-r.win as prev162_wins
                           from numbered_game_results as r
                     inner join numbered_game_results as prev
-                            on r.team_id=prev.team_id
+                            on r.franch_id=prev.franch_id
                            and prev.game_num = (case when r.game_num > 162 then r.game_num-162 else 1 end)
                    ) x
         )
