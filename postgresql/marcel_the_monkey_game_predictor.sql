@@ -17,16 +17,26 @@ team_results as
 team_game_prediction_factors as
 (
 -- Calculate each type of prediction factor, then UNION them into one common table
-    with team_inseason_records as
-        (   select *, (case when game_num>1 then (incoming_wins::decimal/(game_num-1)::decimal) else 0 end) as wpct
-              from (select *,
-                           wins_running_total-win as incoming_wins
-                      from ( select *
-                                  , row_number() over (partition by team_id, yr order by game_dt, game_ct) as game_num
-                                  , sum(win)     over (partition by team_id, yr order by game_dt, game_ct) as wins_running_total
-                               from team_results as tr
-                           ) x
-                   )y
+    with numbered_game_results as
+        (   select *
+                   , row_number() over (partition by team_id order by game_dt, game_ct) as game_num
+                   , sum(win)     over (partition by team_id order by game_dt, game_ct) as wins_running_total
+                   , row_number() over (partition by team_id, yr order by game_dt, game_ct) as season_game_num
+              from team_results
+        ),
+
+    team_inseason_records as
+        (   select x.*, coalesce(x.inseason_wins::decimal/
+                          (case when x.inseason_gms=0 then 1  else inseason_gms end), 0)::decimal as inseason_wpct
+              from (
+                        select r.*, r.game_num-prev.game_num as inseason_gms
+                                  , ((r.wins_running_total-r.win)-(prev.wins_running_total-prev.win)) as inseason_wins
+                          from numbered_game_results as r
+                    inner join numbered_game_results as prev
+                            on r.team_id=prev.team_id
+                           and r.yr=prev.yr
+                           and prev.season_game_num=1
+                   ) x
         ),
      team_results_with_prevyr_records as
         (   select tr.*, (t.w::decimal/t.g::decimal) as prevyr_wpct
@@ -35,15 +45,8 @@ team_game_prediction_factors as
                 on tr.team_id = t.team_id_retro
                    and tr.yr = t.year_id+1 -- this will miss teams that change ID yr over yr
         ),
-      numbered_game_results as
-        (   select *
-                   , row_number() over (partition by team_id order by game_dt, game_ct) as game_num
-                   , sum(win)     over (partition by team_id order by game_dt, game_ct) as wins_running_total
-              from team_results
-        ),
      records_prev_162 as
-        (
-            select x.*, coalesce(x.prev162_wins::decimal/
+        (   select x.*, coalesce(x.prev162_wins::decimal/
                           (case when x.prev162_gms=0 then 1  else prev162_gms end), 0)::decimal as prev162_wpct
               from (
                         select r.*, r.game_num-prev.game_num as prev162_gms
@@ -51,11 +54,11 @@ team_game_prediction_factors as
                           from numbered_game_results as r
                     inner join numbered_game_results as prev
                             on r.team_id=prev.team_id
-                           and prev.game_num = (case when r.game_num > 163 then r.game_num-162 else 1 end)
+                           and prev.game_num = (case when r.game_num > 162 then r.game_num-162 else 1 end)
                    ) x
         )
 
-    select game_id, team_id, game_dt, game_ct, wpct as prediction_factor, 'inseason_wpct' as prediction_type
+    select game_id, team_id, game_dt, game_ct, inseason_wpct as prediction_factor, 'inseason_wpct' as prediction_type
       from team_inseason_records
    UNION
     select game_id, team_id, game_dt, game_ct, prevyr_wpct as prediction_factor, 'prevyr_wpct' as prediction_type
