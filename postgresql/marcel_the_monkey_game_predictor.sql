@@ -11,7 +11,7 @@ team_results as
 (   select tr.*, t.franch_id as franch_id
       from ( select game_id, away_team_id as team_id, game_dt, game_ct, 1-home_win as win, yr
                from results
-              UNION
+            UNION
              select game_id, home_team_id as team_id, game_dt, game_ct, home_win as win, yr
                from results
            ) tr
@@ -31,8 +31,9 @@ team_game_prediction_factors as
         ),
 
     team_inseason_records as
-        (   select x.*, coalesce(x.inseason_wins::decimal/
-                                 (case when x.inseason_gms=0 then 1  else inseason_gms end), 0) as inseason_wpct
+        (   select x.*
+                 , coalesce(x.inseason_wins::decimal/
+                            (case when x.inseason_gms=0 then 1  else inseason_gms end), 0) as inseason_wpct
               from (    select r.*, r.game_num-prev.game_num as inseason_gms
                              , ((r.wins_running_total-r.win)-(prev.wins_running_total-prev.win)) as inseason_wins
                           from numbered_game_results as r
@@ -43,15 +44,15 @@ team_game_prediction_factors as
                    ) x
         ),
      team_results_with_prevyr_records as
-        (   select tr.*, (t.w::decimal/t.g::decimal) as prevyr_wpct
+        (   select tr.*, (prev.w::decimal/prev.g::decimal) as prevyr_wpct
               from team_results as tr
-        inner join baseballdatabank_teams as t
-                on tr.franch_id = t.franch_id
-                   and tr.yr = t.year_id+1 -- this will miss teams that change ID yr over yr
+        inner join baseballdatabank_teams as prev
+                on tr.franch_id = prev.franch_id and tr.yr = prev.year_id+1
         ),
      records_prev_162 as
-        (   select x.*, coalesce(x.prev162_wins::decimal/
-                          (case when x.prev162_gms=0 then 1  else prev162_gms end), 0)::decimal as prev162_wpct
+        (   select x.*
+                 , coalesce(x.prev162_wins::decimal/
+                            (case when x.prev162_gms=0 then 1 else prev162_gms end), 0)::decimal as prev162_wpct
               from (    select r.*
                              , r.game_num-prev.game_num as prev162_gms
                              , r.wins_running_total-prev.wins_running_total-r.win as prev162_wins
