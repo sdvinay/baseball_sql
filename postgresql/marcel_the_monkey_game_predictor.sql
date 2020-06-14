@@ -34,13 +34,37 @@ team_game_prediction_factors as
         inner join baseballdatabank_teams as t
                 on tr.team_id = t.team_id_retro
                    and tr.yr = t.year_id+1 -- this will miss teams that change ID yr over yr
+        ),
+      numbered_game_results as
+        (   select *
+                   , row_number() over (partition by team_id order by game_dt, game_ct) as game_num
+                   , sum(win)     over (partition by team_id order by game_dt, game_ct) as wins_running_total
+              from team_results
+        ),
+     records_prev_162 as
+        (
+            select x.*, coalesce(x.prev162_wins::decimal/
+                          (case when x.prev162_gms=0 then 1  else prev162_gms end), 0)::decimal as prev162_wpct
+              from (
+                        select r.*, r.game_num-prev.game_num as prev162_gms
+                                  , r.wins_running_total-prev.wins_running_total-r.win as prev162_wins
+                          from numbered_game_results as r
+                    inner join numbered_game_results as prev
+                            on r.team_id=prev.team_id
+                           and prev.game_num = (case when r.game_num > 163 then r.game_num-162 else 1 end)
+                   ) x
         )
+
     select game_id, team_id, game_dt, game_ct, wpct as prediction_factor, 'inseason_wpct' as prediction_type
       from team_inseason_records
    UNION
     select game_id, team_id, game_dt, game_ct, prevyr_wpct as prediction_factor, 'prevyr_wpct' as prediction_type
       from team_results_with_prevyr_records
-),
+   UNION
+    select game_id, team_id, game_dt, game_ct, prev162_wpct as prediction_factor, 'prev162_wpct' as prediction_type
+      from records_prev_162
+
+) ,
 results_with_predictions as
 (
 with prediction_factors_both_teams as
@@ -56,7 +80,7 @@ with prediction_factors_both_teams as
                    and trh.prediction_type=tra.prediction_type
             )
 
-			-- Now compare the prediction_factors and see if the prediction was correct
+            -- Now compare the prediction_factors and see if the prediction was correct
     select r.*, pf.prediction_type as prediction_type
          , (case when pf.home_pred_factor>=pf.away_pred_factor then home_win else 1-home_win end) as prediction_correct
       from results as r
