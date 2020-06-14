@@ -1,63 +1,81 @@
 -- Predicting the winner of a game using basic methods
 
 with results as
-(   select away_team_id, home_team_id, away_score_ct, home_score_ct, game_dt, game_ct,
+(   select game_id, away_team_id, home_team_id, away_score_ct, home_score_ct, game_dt, game_ct,
            extract(year from game_dt) as yr,
            (case when home_score_ct>away_score_ct then 1 else 0 end) as home_win
       from retrosheet_game
      where extract(year from game_dt)>=2000
  ),
 team_results as
-(   select away_team_id as team_id, game_dt, game_ct, 1-home_win as win, yr
+(   select game_id, away_team_id as team_id, game_dt, game_ct, 1-home_win as win, yr
       from results
      UNION
-    select home_team_id as team_id, game_dt, game_ct, home_win as win, yr
+    select game_id, home_team_id as team_id, game_dt, game_ct, home_win as win, yr
       from results
 ),
-team_inseason_records as
-(   select *, coalesce(incoming_wins::decimal/(game_num-1)::decimal, 0) as wpct
-      from (select *,
-                   lag(wins_running_total, 1) over (partition by team_id, yr order by game_dt, game_dt) as incoming_wins
-              from ( select *
-                            , row_number() over (partition by team_id, yr order by game_dt, game_ct) as game_num
-                            ,     sum(win) over (partition by team_id, yr order by game_dt, game_ct) as wins_running_total
-                       from team_results as tr
-                   ) x
-           )y
-),
-team_results_with_prevyr_records as
-(   select tr.*, (t.w::decimal/t.g::decimal) as prev_wpct
-      from team_inseason_records as tr
-inner join baseballdatabank_teams as t
-        on tr.team_id = t.team_id_retro
-           and tr.yr = t.year_id+1
-),
-results_with_predictors as
+team_game_prediction_factors as
 (
-    select r.*, trh.wpct as home_wpct, tra.wpct as away_wpct, trh.prev_wpct as home_prev_wpct, tra.prev_wpct as away_prev_wpct
-      from results as r
-inner join team_results_with_prevyr_records as trh
-        on r.home_team_id=trh.team_id and r.game_dt=trh.game_dt and r.game_ct=trh.game_ct
-inner join team_results_with_prevyr_records as tra
-        on r.away_team_id=tra.team_id and r.game_dt=tra.game_dt and r.game_ct=tra.game_ct
+-- Calculate each type of prediction factor, then UNION them into one common table
+    with team_inseason_records as
+        (   select *, (case when game_num>1 then (incoming_wins::decimal/(game_num-1)::decimal) else 0 end) as wpct
+              from (select *,
+                           wins_running_total-win as incoming_wins
+                      from ( select *
+                                  , row_number() over (partition by team_id, yr order by game_dt, game_ct) as game_num
+                                  , sum(win)     over (partition by team_id, yr order by game_dt, game_ct) as wins_running_total
+                               from team_results as tr
+                           ) x
+                   )y
+        ),
+     team_results_with_prevyr_records as
+        (   select tr.*, (t.w::decimal/t.g::decimal) as prevyr_wpct
+              from team_results as tr
+        inner join baseballdatabank_teams as t
+                on tr.team_id = t.team_id_retro
+                   and tr.yr = t.year_id+1 -- this will miss teams that change ID yr over yr
+        )
+    select game_id, team_id, game_dt, game_ct, wpct as prediction_factor, 'inseason_wpct' as prediction_type
+      from team_inseason_records
+   UNION
+    select game_id, team_id, game_dt, game_ct, prevyr_wpct as prediction_factor, 'prevyr_wpct' as prediction_type
+      from team_results_with_prevyr_records
 ),
 results_with_predictions as
 (
-    select *
-           , (case when home_wpct>=away_wpct then home_win else 1-home_win end) as wpct_prediction_correct
-           , (case when home_prev_wpct>=away_prev_wpct then home_win else 1-home_win end) as wpct_prev_prediction_correct
-      from results_with_predictors
+with prediction_factors_both_teams as
+            ( -- collect the predictions of each team into one row per game
+                select trh.game_id, trh.prediction_type as prediction_type
+                     , trh.prediction_factor as home_pred_factor
+                     , tra.prediction_factor as away_pred_factor
+                  from results as r
+            inner join team_game_prediction_factors as trh
+                    on r.game_id = trh.game_id and r.home_team_id=trh.team_id
+            inner join team_game_prediction_factors as tra
+                    on r.game_id = tra.game_id and r.away_team_id=tra.team_id
+                   and trh.prediction_type=tra.prediction_type
+            )
+
+			-- Now compare the prediction_factors and see if the prediction was correct
+    select r.*, pf.prediction_type as prediction_type
+         , (case when pf.home_pred_factor>=pf.away_pred_factor then home_win else 1-home_win end) as prediction_correct
+      from results as r
+inner join prediction_factors_both_teams as pf
+            on r.game_id=pf.game_id
+UNION -- HFA is so simple that we just compute it here, rather than creating interim prediction factors
+    select r.*, 'hfa' as prediction_type
+         , home_win as prediction_correct
+      from results as r
 )
 
---how do different marcel methods do?
-  select mo, total_gms
-         , wpct_predictions_correct, (wpct_predictions_correct::decimal)/(total_gms::decimal) as wpct_prediction_wpct
-         , wpct_predictions_correct, (wpct_prev_predictions_correct::decimal)/(total_gms::decimal) as wpct_prev_prediction_wpct
-    from (select extract (month from game_dt) as mo, count(1) as total_gms
-               , sum(wpct_prediction_correct) as wpct_predictions_correct
-               , sum(wpct_prev_prediction_correct) as wpct_prev_predictions_correct
+
+--how do the different marcel methods do (grouped by month)?
+  select x.*
+       , (predictions_correct::decimal)/(total_gms::decimal) as prediction_wpct
+    from (select extract (month from game_dt) as mo, prediction_type, count(1) as total_gms
+               , sum(prediction_correct) as predictions_correct
           from results_with_predictions
-      group by rollup(extract (month from game_dt))
+      group by rollup(prediction_type, extract (month from game_dt))
          ) x
 order by mo
 ;
