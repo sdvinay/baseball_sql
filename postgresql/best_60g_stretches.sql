@@ -21,7 +21,6 @@ select *, h::decimal/ab as ba
  where gms=60
    and pa>=3.1*60
 )
-select player_id, count(start_dt) from qual_stretches where ba>=.4 group by player_id;
 
 select s.player_id, concat(p.name_first, ' ', p.name_last), start_dt, end_dt, h, ab, pa, round(ba,4) as ba
 from ( select * -- identify each player's career high by using a window function
