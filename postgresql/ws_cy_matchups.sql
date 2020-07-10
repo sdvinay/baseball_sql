@@ -4,7 +4,7 @@
 
 with cy_winners as
 (
-	-- start with the winners
+    -- start with the winners
     with winners as
     (
           select player_id, min(year_id) as first_win
@@ -13,8 +13,9 @@ with cy_winners as
         group by player_id
     )
 
-	    -- add the name and retro_id
-    select c.*, p.retro_id, p.name_first, p.name_last from winners as c
+        -- add the name and retro_id
+    select c.*, p.retro_id, p.name_first, p.name_last
+      from winners as c
 inner join baseballdatabank_people as p
         on c.player_id = p.player_id
 )
@@ -22,7 +23,7 @@ inner join baseballdatabank_people as p
 , ws_games as
 (
     select home_team, visiting_team, date, extract(year from date) as yr
-	     , visitor_starting_pitcher_id, home_starting_pitcher_id, visiting_team_game_number as game_num
+         , visitor_starting_pitcher_id, home_starting_pitcher_id, visiting_team_game_number as game_num
       from retrosheet_gamelog
      where extract(month from date) >= 10
        and visiting_team_league <> home_team_league
@@ -35,7 +36,7 @@ inner join baseballdatabank_people as p
       from ws_games as g
 inner join cy_winners as pv on g.visitor_starting_pitcher_id=pv.retro_id
 inner join cy_winners as ph on    g.home_starting_pitcher_id=ph.retro_id
-	    -- play with the last 'and' clause to get the different variations
+        -- play with the last 'and' clause to get the different variations
         -- (e.g., whether past Cy winner, current year, future, etc)
        and ((g.yr> pv.first_win) and (g.yr> ph.first_win)) -- previous winners
 --     and ((g.yr>=pv.first_win) and (g.yr>=ph.first_win)) -- previous winners and current year
