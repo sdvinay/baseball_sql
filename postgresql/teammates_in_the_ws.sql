@@ -2,7 +2,7 @@
 -- Is this true?  Is this rare?
 
 with ws_players as
-(   select player_id, team_id,year_id from baseballdatabank_batting_post where round ='WS' and year_id>1950)
+(   select player_id, team_id, year_id from baseballdatabank_batting_post where round ='WS' and year_id>1950)
 , giambi_teammates as
 (   select distinct(b.player_id)
       from baseballdatabank_batting as b

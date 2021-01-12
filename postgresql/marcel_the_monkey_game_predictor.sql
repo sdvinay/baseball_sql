@@ -1,5 +1,6 @@
 -- Predicting the winner of a game using basic methods
-
+drop table t_my_rollup;
+create table t_my_rollup as
 with results as
 (   select game_id, away_team_id, home_team_id, away_score_ct, home_score_ct, game_dt, game_ct
          , extract(year from game_dt) as yr
@@ -103,13 +104,18 @@ UNION -- HFA is so simple that we just compute it here, rather than creating int
 
 --how do the different marcel methods do (grouped by month)?
   select x.*
-       , (predictions_correct::decimal)/(total_gms::decimal) as prediction_wpct
+         , (predictions_correct::decimal)/(total_gms::decimal) as prediction_wpct
     from (select extract (month from game_dt) as mo, prediction_type, count(1) as total_gms
                , sum(prediction_correct) as predictions_correct
             from results_with_predictions
-        group by rollup(prediction_type, extract (month from game_dt))
+        group by prediction_type, extract (month from game_dt)
          ) x
 order by mo, prediction_type
 ;
+select * from t_my_rollup;
 
+select * from crosstab('select mo, prediction_type, prediction_wpct from t_my_rollup', 'select distinct(prediction_type) from t_my_rollup order by prediction_type')
+as (mo integer, hfa float, inseason float, prev162 float, prevyr float)
+;
 
+CREATE extension tablefunc;
