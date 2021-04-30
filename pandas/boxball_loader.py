@@ -86,11 +86,15 @@ def filter_on_game_types(df, game_types):
     gms = df[df['game_type'].isin(gtstrs)]
     return gms
 
-def load_gamelogs(game_types):
+# filter rows based on the requested years
+def filter_on_years(df, years):
+    return df[(df['yr'].isin(years))]
+
+def load_gamelogs(game_types, years):
     df = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
 
     # filter rows based on the requested game_types
-    rows = filter_on_game_types(df, game_types)
+    rows = filter_on_game_types(filter_on_years(df, years), game_types)
 
     return rows
 
