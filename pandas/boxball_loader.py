@@ -1,22 +1,23 @@
-import pandas as pd
 from enum import Flag, auto
 import os.path
+import pandas as pd
 import numpy as np
 
 
 # Cache event data
-def load_event_data(start_yr, end_yr, columns):
+def load_event_data(start_yr, end_yr, requested_columns):
+    required_cols = ['game_id', 'bat_event_fl', 'h_fl', 'event_cd', 'ab_fl']
+    columns = list(set(required_cols+requested_columns))
     hash_key = hash(tuple([start_yr, end_yr, tuple(columns)]))
     cache_filepath = f'../data/cache/event_{hash_key}.parquet'
     if os.path.isfile(cache_filepath):
         pa = pd.read_parquet(cache_filepath)
     else:
-        required_cols = ['game_id', 'bat_event_fl', 'h_fl', 'event_cd']
         gm = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
         gms = gm[(gm['yr']>=start_yr) & (gm['yr']<=end_yr)][['game_id', 'date']]
-        ev = pd.read_parquet('../data/retrosheet/event.parquet')[required_cols+columns]
-        #pa = ev[(ev['game_id'].isin(gms.game_id) & (ev['bat_event_fl']))]
-        pa = ev[ev['game_id'].isin(gms.game_id)]
+        ev = pd.read_parquet('../data/retrosheet/event.parquet')[columns]
+        pa = ev[(ev['game_id'].isin(gms.game_id) & (ev['bat_event_fl']))]
+        #pa = ev[ev['game_id'].isin(gms.game_id)]
         pa = pd.merge(left=gms, right=pa, on='game_id')
         pa = pa.rename(columns={'h_fl': 'tb_ct'})
         pa['h_fl'] = np.where(pa['tb_ct']>0, 1, 0)
@@ -99,6 +100,24 @@ def load_gamelogs(game_types, years):
     return rows
 
 
+def load_gamelog_teams(game_types, years):
+    df = pd.read_parquet('../data/mine/gl_teams.parquet')
+
+    # filter rows based on the requested game_types
+    rows = filter_on_game_types(filter_on_years(df, years), game_types)
+
+    return rows
+
+
+def load_gamelog_starters(game_types, years):
+    df = pd.read_parquet('../data/mine/gl_starters.parquet')
+
+    # filter rows based on the requested game_types
+    rows = filter_on_game_types(filter_on_years(df, years), game_types)
+
+    return rows
+
+
 def load_dailies(game_types):
     df = pd.read_parquet('../data/mine/daily.parquet')
     
@@ -107,6 +126,6 @@ def load_dailies(game_types):
 
     return rows
 
-def load_dailies_bat():
+def load_dailies_bat(game_types):
         cols = dailies_cols_standard+dailies_cols_bat
-        return load_dailies()[cols]
+        return load_dailies(game_types)[cols]
