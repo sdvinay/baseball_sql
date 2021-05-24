@@ -1,28 +1,47 @@
 from enum import Flag, auto
+
 import os.path
+
 import pandas as pd
 import numpy as np
 
+# for caching, we need consistent hash keys, via pickle/hashlib
+import pickle
+import hashlib
+
+
+
+def fixup_event_data(df):
+    pa = df
+    pa = pa.rename(columns={'h_fl': 'tb_ct'})
+    pa['h_fl'] = np.where(pa['tb_ct']>0, 1, 0)
+    pa['ob_fl'] = np.where(pa['event_cd'].isin([14, 16, 20, 21, 22, 23]), 1, 0)
+    pa['yr'] = pa['date'].apply (lambda dt: dt.year)
+    return pa
+
+def get_cache_filename(type, hash_key):
+    s = pickle.dumps(hash_key)
+    hash_val = hashlib.sha224(s).hexdigest()
+    cache_filepath = f'../data/cache/{type}_{hash_val}.parquet'
+    return cache_filepath
+    
 
 # Cache event data
 def load_event_data(start_yr, end_yr, requested_columns):
     required_cols = ['game_id', 'bat_event_fl', 'h_fl', 'event_cd', 'ab_fl']
     columns = list(set(required_cols+requested_columns))
-    hash_key = hash(tuple([start_yr, end_yr, tuple(columns)]))
-    cache_filepath = f'../data/cache/event_{hash_key}.parquet'
+    hash_key = (tuple([start_yr, end_yr, tuple(sorted(columns))]))
+    cache_filepath = get_cache_filename('event', hash_key)
     if os.path.isfile(cache_filepath):
         pa = pd.read_parquet(cache_filepath)
     else:
         gm = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
         gms = gm[(gm['yr']>=start_yr) & (gm['yr']<=end_yr)][['game_id', 'date']]
-        ev = pd.read_parquet('../data/retrosheet/event.parquet')[columns]
+        ev = pd.read_parquet('../data/retrosheet/event.parquet')
+        ev = ev[columns]
         pa = ev[(ev['game_id'].isin(gms.game_id) & (ev['bat_event_fl']))]
-        #pa = ev[ev['game_id'].isin(gms.game_id)]
         pa = pd.merge(left=gms, right=pa, on='game_id')
-        pa = pa.rename(columns={'h_fl': 'tb_ct'})
-        pa['h_fl'] = np.where(pa['tb_ct']>0, 1, 0)
-        pa['ob_fl'] = np.where(pa['event_cd'].isin([14, 16, 20, 21, 22, 23]), 1, 0)
-        pa['yr'] = pa['date'].apply (lambda dt: dt.year)
+        pa = fixup_event_data(pa)
         pa.to_parquet(cache_filepath)
     return pa
 
@@ -40,7 +59,30 @@ class PlayerRole(Flag):
     PIT = auto()
     FLD = auto()
     
+class PlayerType(Flag):
+    PITCHER = auto()
+    POSITION = auto()
+    ALL = PITCHER | POSITION
 
+
+class CoalasceMode(Flag):
+    PLAYER_CAREER = auto()
+    PLAYER_SEASON = auto()
+    PLAYER_SEASON_LEAGUE = auto()
+    PLAYER_SEASON_TEAM = auto()
+    PLAYER_SEASON_STINT = auto()
+    PLAYER_CAREER_FRANCHISE = auto()
+    PLAYER_CAREER_LEAGUE = auto()
+    NONE = PLAYER_SEASON_STINT
+
+CoalesceMode_Groupby = {
+    CoalasceMode.PLAYER_CAREER: ['player_id'],
+    CoalasceMode.PLAYER_SEASON: ['player_id', 'yr'],
+    CoalasceMode.PLAYER_SEASON_LEAGUE: ['player_id', 'yr', 'league_id'],
+    CoalasceMode.PLAYER_SEASON_TEAM: ['player_id', 'yr', 'tm_id'],
+    CoalasceMode.PLAYER_CAREER_FRANCHISE: ['player_id', 'franch_id'],
+    CoalasceMode.PLAYER_CAREER_LEAGUE: ['player_id', 'league_id']
+}
 
 dailies_cols_standard = ['game_id', 'game_dt', 'game_ct', 'appearance_dt', 'team_id',
        'player_id', 'slot_ct', 'seq_ct', 'home_fl', 'opponent_id',
@@ -73,6 +115,10 @@ dailies_cols_fld = ['f_p_g', 'f_p_gs',
        'f_rf_gs', 'f_rf_out', 'f_rf_tc', 'f_rf_po', 'f_rf_a', 'f_rf_e',
        'f_rf_dp', 'f_rf_tp']
 
+# add franchise IDs to a DF, matching on 'year_id' and 'team_id'
+def add_franchise_ids(df):
+    teams = load_teams()[['yr', 'team_id', 'franch_id']]
+    return pd.merge(left=df, right=teams)
 
 def get_cols_from_roles(player_roles):
     player_role_mapper = {PlayerRole.BAT: dailies_cols_bat, 
@@ -91,6 +137,25 @@ def filter_on_game_types(df, game_types):
 def filter_on_years(df, years):
     return df[(df['yr'].isin(years))]
 
+# filter rows based on the requested player_type
+def filter_on_player_types(df, player_types):
+    if player_types == PlayerType.ALL:
+        return df
+
+    non_pitchers = get_non_pitchers()
+    non_pit_rows = df['player_id'].isin(get_non_pitchers())
+    if player_types == PlayerType.POSITION:
+        non_pits = df[df['player_id'].isin(get_non_pitchers())]
+        return non_pits
+
+    if player_types == PlayerType.PITCHER:
+        pits = df[~df['player_id'].isin(get_non_pitchers())]
+        return pits
+
+
+
+    return rows
+
 def load_gamelogs(game_types, years):
     df = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
 
@@ -100,6 +165,14 @@ def load_gamelogs(game_types, years):
     return rows
 
 
+# identify non-pitchers
+
+def get_non_pitchers():
+    apps = load_appearances()
+    career_apps = apps.groupby('player_id')[['g_all', 'g_p']].sum()
+    non_pitchers = career_apps[(career_apps['g_all']>2*career_apps['g_p'])].index
+    return non_pitchers
+
 def load_gamelog_teams(game_types, years):
     df = pd.read_parquet('../data/mine/gl_teams.parquet')
 
@@ -107,6 +180,31 @@ def load_gamelog_teams(game_types, years):
     rows = filter_on_game_types(filter_on_years(df, years), game_types)
 
     return rows
+
+def load_teams():
+    df = pd.read_parquet('../data/baseballdatabank/teams.parquet')
+    return df.rename(columns={'year_id': 'yr'})
+
+def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalasceMode.NONE):
+    parquet_file = f'../data/baseballdatabank/{stat_type}.parquet'
+    df = pd.read_parquet(parquet_file)
+    df = df.rename(columns={'year_id': 'yr'})
+    df = filter_on_years(df, years)
+    df = filter_on_player_types(df, player_types)
+    df = add_franchise_ids(df)
+    if coalesce_type != CoalasceMode.NONE:
+        cols = df.columns[5:]
+        df = df.groupby(CoalesceMode_Groupby[coalesce_type])[cols].sum()
+
+    return df
+
+
+def load_batting(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalasceMode.NONE):
+    return load_annual_stats('batting', years, player_types, coalesce_type)
+
+
+def load_pitching(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalasceMode.NONE):
+    return load_annual_stats('pitching', years, player_types, coalesce_type)
 
 
 def load_gamelog_starters(game_types, years):
