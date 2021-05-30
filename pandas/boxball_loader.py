@@ -115,10 +115,24 @@ dailies_cols_fld = ['f_p_g', 'f_p_gs',
        'f_rf_gs', 'f_rf_out', 'f_rf_tc', 'f_rf_po', 'f_rf_a', 'f_rf_e',
        'f_rf_dp', 'f_rf_tp']
 
-# add franchise IDs to a DF, matching on 'year_id' and 'team_id'
+# add franchise IDs to a DF, matching on 'year_id'
+#   and either 'team_id' (for baseball_databank) or 'team' (for retrosheet)
 def add_franchise_ids(df):
-    teams = load_teams()[['yr', 'team_id', 'franch_id']]
-    return pd.merge(left=df, right=teams)
+    teams = load_teams()
+    
+    teams_bd = teams[['yr', 'team_id', 'franch_id']]
+    merged_bd = pd.merge(left=df, right=teams_bd)
+    if len(merged_bd) == len(df):
+        return merged_bd
+
+    teams_retro = teams[['yr', 'team_id_retro', 'franch_id']] \
+				  .rename(columns={'team_id_retro': 'team'})
+    merged_retro = pd.merge(left=df, right=teams_retro)
+    if len(merged_retro) == len(df):
+        return merged_retro
+    else:
+        return None
+
 
 def get_cols_from_roles(player_roles):
     player_role_mapper = {PlayerRole.BAT: dailies_cols_bat, 
