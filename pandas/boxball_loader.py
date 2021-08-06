@@ -73,6 +73,7 @@ class CoalasceMode(Flag):
     PLAYER_SEASON_STINT = auto()
     PLAYER_CAREER_FRANCHISE = auto()
     PLAYER_CAREER_LEAGUE = auto()
+    SEASON_TEAM = auto()
     NONE = PLAYER_SEASON_STINT
 
 CoalesceMode_Groupby = {
@@ -81,7 +82,8 @@ CoalesceMode_Groupby = {
     CoalasceMode.PLAYER_SEASON_LEAGUE: ['player_id', 'yr', 'lg_id'],
     CoalasceMode.PLAYER_SEASON_TEAM: ['player_id', 'yr', 'team_id'],
     CoalasceMode.PLAYER_CAREER_FRANCHISE: ['player_id', 'franch_id'],
-    CoalasceMode.PLAYER_CAREER_LEAGUE: ['player_id', 'lg_id']
+    CoalasceMode.PLAYER_CAREER_LEAGUE: ['player_id', 'lg_id'],
+    CoalasceMode.SEASON_TEAM: ['yr', 'team_id', 'lg_id']
 }
 
 dailies_cols_standard = ['game_id', 'game_dt', 'game_ct', 'appearance_dt', 'team_id',
@@ -207,7 +209,7 @@ def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerT
     df = filter_on_player_types(df, player_types)
     df = add_franchise_ids(df)
     if coalesce_type != CoalasceMode.NONE:
-        cols = df.columns[5:]
+        cols = df.columns[6:]
         df = df.groupby(CoalesceMode_Groupby[coalesce_type])[cols].sum()
 
     return df
