@@ -78,10 +78,10 @@ class CoalasceMode(Flag):
 CoalesceMode_Groupby = {
     CoalasceMode.PLAYER_CAREER: ['player_id'],
     CoalasceMode.PLAYER_SEASON: ['player_id', 'yr'],
-    CoalasceMode.PLAYER_SEASON_LEAGUE: ['player_id', 'yr', 'league_id'],
+    CoalasceMode.PLAYER_SEASON_LEAGUE: ['player_id', 'yr', 'lg_id'],
     CoalasceMode.PLAYER_SEASON_TEAM: ['player_id', 'yr', 'tm_id'],
     CoalasceMode.PLAYER_CAREER_FRANCHISE: ['player_id', 'franch_id'],
-    CoalasceMode.PLAYER_CAREER_LEAGUE: ['player_id', 'league_id']
+    CoalasceMode.PLAYER_CAREER_LEAGUE: ['player_id', 'lg_id']
 }
 
 dailies_cols_standard = ['game_id', 'game_dt', 'game_ct', 'appearance_dt', 'team_id',
