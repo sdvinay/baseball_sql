@@ -243,3 +243,8 @@ def load_dailies(game_types):
 def load_dailies_bat(game_types):
         cols = dailies_cols_standard+dailies_cols_bat
         return load_dailies(game_types)[cols]
+
+def load_dailies_pit(game_types):
+        cols = dailies_cols_standard+dailies_cols_pit
+        df = load_dailies(game_types)[cols]
+        return df[df['p_g']>0]
