@@ -169,9 +169,6 @@ def filter_on_player_types(df, player_types):
         return pits
 
 
-
-    return rows
-
 def load_gamelogs(game_types, years):
     df = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
 
