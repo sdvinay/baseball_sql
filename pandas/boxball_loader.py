@@ -65,7 +65,7 @@ class PlayerType(Flag):
     ALL = PITCHER | POSITION
 
 
-class CoalasceMode(Flag):
+class CoalesceMode(Flag):
     PLAYER_CAREER = auto()
     PLAYER_SEASON = auto()
     PLAYER_SEASON_LEAGUE = auto()
@@ -77,13 +77,13 @@ class CoalasceMode(Flag):
     NONE = PLAYER_SEASON_STINT
 
 CoalesceMode_Groupby = {
-    CoalasceMode.PLAYER_CAREER: ['player_id'],
-    CoalasceMode.PLAYER_SEASON: ['player_id', 'yr'],
-    CoalasceMode.PLAYER_SEASON_LEAGUE: ['player_id', 'yr', 'lg_id'],
-    CoalasceMode.PLAYER_SEASON_TEAM: ['player_id', 'yr', 'team_id'],
-    CoalasceMode.PLAYER_CAREER_FRANCHISE: ['player_id', 'franch_id'],
-    CoalasceMode.PLAYER_CAREER_LEAGUE: ['player_id', 'lg_id'],
-    CoalasceMode.SEASON_TEAM: ['yr', 'team_id', 'lg_id']
+    CoalesceMode.PLAYER_CAREER: ['player_id'],
+    CoalesceMode.PLAYER_SEASON: ['player_id', 'yr'],
+    CoalesceMode.PLAYER_SEASON_LEAGUE: ['player_id', 'yr', 'lg_id'],
+    CoalesceMode.PLAYER_SEASON_TEAM: ['player_id', 'yr', 'team_id'],
+    CoalesceMode.PLAYER_CAREER_FRANCHISE: ['player_id', 'franch_id'],
+    CoalesceMode.PLAYER_CAREER_LEAGUE: ['player_id', 'lg_id'],
+    CoalesceMode.SEASON_TEAM: ['yr', 'team_id', 'lg_id']
 }
 
 dailies_cols_standard = ['game_id', 'game_dt', 'game_ct', 'appearance_dt', 'team_id',
@@ -201,25 +201,25 @@ def load_teams():
     df = pd.read_parquet('../data/baseballdatabank/teams.parquet')
     return df.rename(columns={'year_id': 'yr'})
 
-def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalasceMode.NONE):
+def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE):
     parquet_file = f'../data/baseballdatabank/{stat_type}.parquet'
     df = pd.read_parquet(parquet_file)
     df = df.rename(columns={'year_id': 'yr'})
     df = filter_on_years(df, years)
     df = filter_on_player_types(df, player_types)
     df = add_franchise_ids(df)
-    if coalesce_type != CoalasceMode.NONE:
+    if coalesce_type != CoalesceMode.NONE:
         cols = df.columns[6:]
         df = df.groupby(CoalesceMode_Groupby[coalesce_type])[cols].sum()
 
     return df
 
 
-def load_batting(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalasceMode.NONE):
+def load_batting(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE):
     return load_annual_stats('batting', years, player_types, coalesce_type)
 
 
-def load_pitching(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalasceMode.NONE):
+def load_pitching(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE):
     return load_annual_stats('pitching', years, player_types, coalesce_type)
 
 
