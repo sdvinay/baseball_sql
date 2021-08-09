@@ -198,7 +198,7 @@ def load_teams():
     df = pd.read_parquet('../data/baseballdatabank/teams.parquet')
     return df.rename(columns={'year_id': 'yr'})
 
-def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE):
+def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols = []):
     parquet_file = f'../data/baseballdatabank/{stat_type}.parquet'
     df = pd.read_parquet(parquet_file)
     df = df.rename(columns={'year_id': 'yr'})
@@ -206,6 +206,8 @@ def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerT
     df = filter_on_player_types(df, player_types)
     df = add_franchise_ids(df)
     df.loc[(df['bfp']==0)&(df['lg_id']=='FL'), 'bfp'] = np.NaN  # Fix defect in BFP data for some Federal League pitchers
+    if len(drop_cols) > 0:
+        df = df.dropna(subset = drop_cols)
     if coalesce_type != CoalesceMode.NONE:
         cols = df.columns[6:]
         df = df.groupby(CoalesceMode_Groupby[coalesce_type])[cols].sum()
@@ -213,12 +215,12 @@ def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerT
     return df
 
 
-def load_batting(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE):
-    return load_annual_stats('batting', years, player_types, coalesce_type)
+def load_batting(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols=[]):
+    return load_annual_stats('batting', years, player_types, coalesce_type, drop_cols)
 
 
-def load_pitching(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE):
-    return load_annual_stats('pitching', years, player_types, coalesce_type)
+def load_pitching(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols=[]):
+    return load_annual_stats('pitching', years, player_types, coalesce_type, drop_cols)
 
 
 def load_gamelog_starters(game_types, years):
