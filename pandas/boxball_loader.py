@@ -27,23 +27,24 @@ def get_cache_filename(type, hash_key):
     
 
 # Cache event data
-def load_event_data(start_yr, end_yr, requested_columns):
+def load_event_data(start_yr, end_yr, requested_columns, pa_only=True):
     required_cols = ['game_id', 'bat_event_fl', 'h_fl', 'event_cd', 'ab_fl']
     columns = list(set(required_cols+requested_columns))
     hash_key = (tuple([start_yr, end_yr, tuple(sorted(columns))]))
     cache_filepath = get_cache_filename('event', hash_key)
     if os.path.isfile(cache_filepath):
-        pa = pd.read_parquet(cache_filepath)
+        ev = pd.read_parquet(cache_filepath)
     else:
         gm = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
         gms = gm[(gm['yr']>=start_yr) & (gm['yr']<=end_yr)][['game_id', 'date']]
-        ev = pd.read_parquet('../data/retrosheet/event.parquet')
-        ev = ev[columns]
-        pa = ev[(ev['game_id'].isin(gms.game_id) & (ev['bat_event_fl']))]
-        pa = pd.merge(left=gms, right=pa, on='game_id')
-        pa = fixup_event_data(pa)
-        pa.to_parquet(cache_filepath)
-    return pa
+        ev = pd.read_parquet('../data/retrosheet/event.parquet')[columns]
+        ev = ev[(ev['game_id'].isin(gms.game_id))]
+        ev = pd.merge(left=gms, right=ev, on='game_id')
+        ev = fixup_event_data(ev)
+        ev.to_parquet(cache_filepath)
+
+    ev = ev[ev['bat_event_fl']] if pa_only else ev
+    return ev
 
 def load_appearances():
     return pd.read_parquet('../data/baseballdatabank/appearances.parquet')
