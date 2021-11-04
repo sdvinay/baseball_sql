@@ -49,6 +49,9 @@ def load_event_data(start_yr, end_yr, requested_columns, pa_only=True):
 def load_appearances():
     return pd.read_parquet('../data/baseballdatabank/appearances.parquet')
 
+# def load_people():
+    return pd.read_parquet('../data/baseballdatabank/people.parquet')
+
 class GameType(Flag):
     RS = auto()
     PS = auto()
