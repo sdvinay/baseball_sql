@@ -9,49 +9,6 @@ import numpy as np
 import pickle
 import hashlib
 
-
-
-def fixup_event_data(df):
-    pa = df
-    pa = pa.rename(columns={'h_fl': 'tb_ct'})
-    pa['h_fl'] = np.where(pa['tb_ct']>0, 1, 0)
-    pa['ob_fl'] = np.where(pa['event_cd'].isin([14, 16, 20, 21, 22, 23]), 1, 0)
-    pa['yr'] = pa['date'].apply (lambda dt: dt.year)
-    return pa
-
-def get_cache_filename(type, hash_key):
-    s = pickle.dumps(hash_key)
-    hash_val = hashlib.sha224(s).hexdigest()
-    cache_filepath = f'../data/cache/{type}_{hash_val}.parquet'
-    return cache_filepath
-    
-
-# Cache event data
-def load_event_data(start_yr, end_yr, requested_columns, pa_only=True):
-    required_cols = ['game_id', 'bat_event_fl', 'h_fl', 'event_cd', 'ab_fl']
-    columns = list(set(required_cols+requested_columns))
-    hash_key = (tuple([start_yr, end_yr, tuple(sorted(columns))]))
-    cache_filepath = get_cache_filename('event', hash_key)
-    if os.path.isfile(cache_filepath):
-        ev = pd.read_parquet(cache_filepath)
-    else:
-        gm = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
-        gms = gm[(gm['yr']>=start_yr) & (gm['yr']<=end_yr)][['game_id', 'date', 'game_type']]
-        ev = pd.read_parquet('../data/retrosheet/event.parquet')[columns]
-        ev = ev[(ev['game_id'].isin(gms.game_id))]
-        ev = pd.merge(left=gms, right=ev, on='game_id')
-        ev = fixup_event_data(ev)
-        ev.to_parquet(cache_filepath)
-
-    ev = ev[ev['bat_event_fl']] if pa_only else ev
-    return ev
-
-def load_appearances():
-    return pd.read_parquet('../data/baseballdatabank/appearances.parquet')
-
-# def load_people():
-    return pd.read_parquet('../data/baseballdatabank/people.parquet')
-
 class GameType(Flag):
     RS = auto()
     PS = auto()
@@ -89,6 +46,50 @@ CoalesceMode_Groupby = {
     CoalesceMode.PLAYER_CAREER_LEAGUE: ['player_id', 'lg_id'],
     CoalesceMode.SEASON_TEAM: ['yr', 'team_id', 'lg_id']
 }
+
+
+def fixup_event_data(df):
+    pa = df
+    pa = pa.rename(columns={'h_fl': 'tb_ct'})
+    pa['h_fl'] = np.where(pa['tb_ct']>0, 1, 0)
+    pa['ob_fl'] = np.where(pa['event_cd'].isin([14, 16, 20, 21, 22, 23]), 1, 0)
+    pa['yr'] = pa['date'].apply (lambda dt: dt.year)
+    return pa
+
+def get_cache_filename(type, hash_key):
+    s = pickle.dumps(hash_key)
+    hash_val = hashlib.sha224(s).hexdigest()
+    cache_filepath = f'../data/cache/{type}_{hash_val}.parquet'
+    return cache_filepath
+    
+
+# Cache event data
+def load_event_data(start_yr, end_yr, requested_columns, pa_only=True, game_types=GameType.RS):
+    required_cols = ['game_id', 'bat_event_fl', 'h_fl', 'event_cd', 'ab_fl']
+    columns = list(set(required_cols+requested_columns))
+    hash_key = (tuple([start_yr, end_yr, tuple(sorted(columns))]))
+    cache_filepath = get_cache_filename('event', hash_key)
+    if os.path.isfile(cache_filepath):
+        ev = pd.read_parquet(cache_filepath)
+    else:
+        gm = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
+        gms = gm[(gm['yr']>=start_yr) & (gm['yr']<=end_yr)][['game_id', 'date', 'game_type']]
+        ev = pd.read_parquet('../data/retrosheet/event.parquet')[columns]
+        ev = ev[(ev['game_id'].isin(gms.game_id))]
+        ev = pd.merge(left=gms, right=ev, on='game_id')
+        ev = fixup_event_data(ev)
+        ev.to_parquet(cache_filepath)
+
+    ev = ev[ev['bat_event_fl']] if pa_only else ev
+    ev = filter_on_game_types(ev, game_types)
+    return ev
+
+def load_appearances():
+    return pd.read_parquet('../data/baseballdatabank/appearances.parquet')
+
+# def load_people():
+    return pd.read_parquet('../data/baseballdatabank/people.parquet')
+
 
 dailies_cols_standard = ['game_id', 'game_dt', 'game_ct', 'appearance_dt', 'team_id',
        'player_id', 'slot_ct', 'seq_ct', 'home_fl', 'opponent_id',
@@ -150,8 +151,8 @@ def get_cols_from_roles(player_roles):
 def filter_on_game_types(df, game_types):
     game_type_mapper = {GameType.RS: 'RS', GameType.PS: 'PS', GameType.ASG: 'ASG'}
     gtstrs = [gtstr for gt, gtstr in game_type_mapper.items() if gt & game_types]
-    gms = df[df['game_type'].isin(gtstrs)]
-    return gms
+    filtered = df[df['game_type'].isin(gtstrs)]
+    return filtered
 
 # filter rows based on the requested years
 def filter_on_years(df, years):
