@@ -210,7 +210,8 @@ def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerT
     df = filter_on_years(df, years)
     df = filter_on_player_types(df, player_types)
     df = add_franchise_ids(df)
-    df.loc[(df['bfp']==0)&(df['lg_id']=='FL'), 'bfp'] = np.NaN  # Fix defect in BFP data for some Federal League pitchers
+    if stat_type == 'pitching':  # Fix defect in BFP data for some Federal League pitchers
+        df.loc[(df['bfp']==0)&(df['lg_id']=='FL'), 'bfp'] = np.NaN
     if len(drop_cols) > 0:
         df = df.dropna(subset = drop_cols)
     if coalesce_type != CoalesceMode.NONE:
