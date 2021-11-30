@@ -68,4 +68,5 @@ def add_batting_rate_stats(df):
     df['slg'] = df['tb'] / df['ab']
     df['ops'] = df['obp'] + df['slg']
     df['r27'] = df['r'] / df['outs'] * 27
+    df['woba'] = get_woba(df)
     return df
