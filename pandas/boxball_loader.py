@@ -199,6 +199,11 @@ def load_gamelog_teams(game_types, years):
 
     return rows
 
+def load_people():
+    df = pd.read_parquet('../data/baseballdatabank/people.parquet')
+    return df
+
+
 def load_teams():
     df = pd.read_parquet('../data/baseballdatabank/teams.parquet')
     return df.rename(columns={'year_id': 'yr'})
