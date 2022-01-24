@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import boxball_loader as bbl
 
 
