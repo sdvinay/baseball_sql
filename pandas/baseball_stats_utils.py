@@ -55,8 +55,8 @@ def summarize_events(pa, groupby):
     return stats
 
 def get_woba(stats):
-    woba_weights = {'ob': .702, 'tb': .37, 'h': -.21}
-    return sum([stats[stat]*woba_weights[stat] for stat in woba_weights.keys()])/stats['pa']
+    woba_weights = {'ob': .702, 'ibb': -.702, 'tb': .37, 'h': -.21}
+    return sum([stats[stat]*woba_weights[stat] for stat in woba_weights.keys()])/(stats['pa'] - stats['ibb'])
 
 def add_batting_rate_stats(df):
     df['pa'] = df['ab'] + df['bb'] + df['hbp'] + df['sf']
