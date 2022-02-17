@@ -220,7 +220,7 @@ def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerT
     if len(drop_cols) > 0:
         df = df.dropna(subset = drop_cols)
     if coalesce_type != CoalesceMode.NONE:
-        cols = df.columns[6:]
+        cols = df.columns[5:]
         df = df.groupby(CoalesceMode_Groupby[coalesce_type])[cols].sum()
 
     return df
