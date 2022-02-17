@@ -1,17 +1,18 @@
 import pandas as pd
+import boxball_loader as bbl
 
 def create_bbref_boxscore_url(game_id):
     return f'https://www.baseball-reference.com/boxes/{game_id[0:3]}/{game_id}.shtml'
 
 def get_player_names_df(df, idx_fld):
-    ppl = pd.read_parquet('../data/baseballdatabank/people.parquet')
+    ppl = bbl.load_people()
     ppl['name'] = ppl['name_first']+ ' ' + ppl['name_last']
     merged = pd.merge(left=df, right=ppl[[idx_fld, 'name']]
                       , left_index=True, right_on=idx_fld)
     return merged.set_index(idx_fld)['name']
 
 def get_player_names_col(s: pd.Series, idx_fld: str):
-    ppl = pd.read_parquet('../data/baseballdatabank/people.parquet')
+    ppl = bbl.load_people()
     ppl['name'] = ppl['name_first']+ ' ' + ppl['name_last']
     merged = pd.merge(left=s, right=ppl[[idx_fld, 'name']]
                       , left_on=s.name, right_on=idx_fld)
