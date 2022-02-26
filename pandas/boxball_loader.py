@@ -259,3 +259,7 @@ def load_dailies_pit(game_types):
         cols = dailies_cols_standard+dailies_cols_pit
         df = load_dailies(game_types)[cols]
         return df[df['p_g']>0]
+
+def get_event_code_descriptions():
+    df = pd.read_parquet('../data/retrosheet/code_event.parquet').set_index('code')
+    return df
