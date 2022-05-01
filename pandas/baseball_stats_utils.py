@@ -4,7 +4,7 @@ import boxball_loader as bbl
 def create_bbref_boxscore_url(game_id):
     return f'https://www.baseball-reference.com/boxes/{game_id[0:3]}/{game_id}.shtml'
 
-def get_player_names_df(df, idx_fld):
+def get_player_names_df(df: pd.DataFrame, idx_fld: str):
     ppl = bbl.load_people()
     ppl['name'] = ppl['name_first']+ ' ' + ppl['name_last']
     merged = pd.merge(left=df, right=ppl[[idx_fld, 'name']]
@@ -19,9 +19,11 @@ def get_player_names_col(s: pd.Series, idx_fld: str):
     merged.index = s.index
     return merged['name']
 
-def get_player_names_idx(i, idx_fld):
+def get_player_names_idx(i: pd.Index, idx_fld: str):
     s = pd.Series(i).rename(idx_fld)
-    return get_player_names_col(s, idx_fld)
+    nms = get_player_names_col(s, idx_fld)
+    nms.index = i
+    return nms
 
 
 # This function will group a DF of PAs by some field(s) (e.g., inning, time through lineup),
