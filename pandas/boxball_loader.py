@@ -48,7 +48,7 @@ CoalesceMode_Groupby = {
 }
 
 
-def fixup_event_data(df):
+def fixup_event_data(df) -> pd.DataFrame:
     pa = df
     pa = pa.rename(columns={'h_fl': 'tb_ct'})
     pa['h_fl'] = np.where(pa['tb_ct']>0, 1, 0)
@@ -64,7 +64,7 @@ def get_cache_filename(type, hash_key):
     
 
 # Cache event data
-def load_event_data(start_yr, end_yr, requested_columns, pa_only=True, game_types=GameType.RS):
+def load_event_data(start_yr, end_yr, requested_columns, pa_only=True, game_types=GameType.RS) -> pd.DataFrame:
     required_cols = ['game_id', 'bat_event_fl', 'h_fl', 'event_cd', 'ab_fl']
     columns = list(set(required_cols+requested_columns))
     hash_key = (tuple([start_yr, end_yr, tuple(sorted(columns))]))
@@ -84,10 +84,10 @@ def load_event_data(start_yr, end_yr, requested_columns, pa_only=True, game_type
     ev = filter_on_game_types(ev, game_types)
     return ev
 
-def load_appearances():
+def load_appearances() -> pd.DataFrame:
     return pd.read_parquet('../data/baseballdatabank/appearances.parquet')
 
-# def load_people():
+ def load_people() -> pd.DataFrame:
     return pd.read_parquet('../data/baseballdatabank/people.parquet')
 
 
@@ -124,7 +124,7 @@ dailies_cols_fld = ['f_p_g', 'f_p_gs',
 
 # add franchise IDs to a DF, matching on 'year_id'
 #   and either 'team_id' (for baseball_databank) or 'team' (for retrosheet)
-def add_franchise_ids(df):
+def add_franchise_ids(df) -> pd.DataFrame:
     teams = load_teams()
     
     teams_bd = teams[['yr', 'team_id', 'franch_id']]
@@ -141,25 +141,25 @@ def add_franchise_ids(df):
         return None
 
 
-def get_cols_from_roles(player_roles):
+def get_cols_from_roles(player_roles: PlayerRole):
     player_role_mapper = {PlayerRole.BAT: dailies_cols_bat, 
             PlayerRole.PIT: dailies_cols_pit, PlayerRole.FLD: dailies_cols_fld}
     cols = dailies_cols_standard + [role_cols for role, role_cols in player_role_mapper.items() if role & player_roles]
     return cols
 
 # filter rows based on the requested game_types
-def filter_on_game_types(df, game_types):
+def filter_on_game_types(df, game_types) -> pd.DataFrame:
     game_type_mapper = {GameType.RS: 'RS', GameType.PS: 'PS', GameType.ASG: 'ASG'}
     gtstrs = [gtstr for gt, gtstr in game_type_mapper.items() if gt & game_types]
     filtered = df[df['game_type'].isin(gtstrs)]
     return filtered
 
 # filter rows based on the requested years
-def filter_on_years(df, years):
+def filter_on_years(df, years) -> pd.DataFrame:
     return df[(df['yr'].isin(years))]
 
 # filter rows based on the requested player_type
-def filter_on_player_types(df, player_types):
+def filter_on_player_types(df, player_types) -> pd.DataFrame:
     if player_types == PlayerType.ALL:
         return df
 
@@ -174,7 +174,7 @@ def filter_on_player_types(df, player_types):
         return pits
 
 
-def load_gamelogs(game_types, years):
+def load_gamelogs(game_types, years) -> pd.DataFrame:
     df = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
 
     # filter rows based on the requested game_types
@@ -185,13 +185,13 @@ def load_gamelogs(game_types, years):
 
 # identify non-pitchers
 
-def get_non_pitchers():
+def get_non_pitchers() -> pd.DataFrame:
     apps = load_appearances()
     career_apps = apps.groupby('player_id')[['g_all', 'g_p']].sum()
     non_pitchers = career_apps[(career_apps['g_all']>2*career_apps['g_p'])].index
     return non_pitchers
 
-def load_gamelog_teams(game_types, years):
+def load_gamelog_teams(game_types, years) -> pd.DataFrame:
     df = pd.read_parquet('../data/mine/gl_teams.parquet')
 
     # filter rows based on the requested game_types
@@ -199,16 +199,16 @@ def load_gamelog_teams(game_types, years):
 
     return rows
 
-def load_people():
+def load_people() -> pd.DataFrame:
     df = pd.read_parquet('../data/baseballdatabank/people.parquet')
     return df
 
 
-def load_teams():
+def load_teams() -> pd.DataFrame:
     df = pd.read_parquet('../data/baseballdatabank/teams.parquet')
     return df.rename(columns={'year_id': 'yr'})
 
-def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols = []):
+def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols = []) -> pd.DataFrame:
     parquet_file = f'../data/baseballdatabank/{stat_type}.parquet'
     df = pd.read_parquet(parquet_file)
     df = df.rename(columns={'year_id': 'yr'})
@@ -226,15 +226,15 @@ def load_annual_stats(stat_type, years = range(1800, 3000), player_types=PlayerT
     return df
 
 
-def load_batting(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols=[]):
+def load_batting(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols=[]) -> pd.DataFrame:
     return load_annual_stats('batting', years, player_types, coalesce_type, drop_cols)
 
 
-def load_pitching(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols=[]):
+def load_pitching(years = range(1800, 3000), player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols=[]) -> pd.DataFrame:
     return load_annual_stats('pitching', years, player_types, coalesce_type, drop_cols)
 
 
-def load_gamelog_starters(game_types, years):
+def load_gamelog_starters(game_types, years) -> pd.DataFrame:
     df = pd.read_parquet('../data/mine/gl_starters.parquet')
 
     # filter rows based on the requested game_types
@@ -243,7 +243,7 @@ def load_gamelog_starters(game_types, years):
     return rows
 
 
-def load_dailies(game_types):
+def load_dailies(game_types: GameType) -> pd.DataFrame:
     df = pd.read_parquet('../data/mine/daily.parquet')
     
     # filter rows based on the requested game_types
@@ -251,15 +251,15 @@ def load_dailies(game_types):
 
     return rows
 
-def load_dailies_bat(game_types):
+def load_dailies_bat(game_types: GameType) -> pd.DataFrame:
         cols = dailies_cols_standard+dailies_cols_bat
         return load_dailies(game_types)[cols]
 
-def load_dailies_pit(game_types):
+def load_dailies_pit(game_types: GameType) -> pd.DataFrame:
         cols = dailies_cols_standard+dailies_cols_pit
         df = load_dailies(game_types)[cols]
         return df[df['p_g']>0]
 
-def get_event_code_descriptions():
+def get_event_code_descriptions() -> pd.DataFrame:
     df = pd.read_parquet('../data/retrosheet/code_event.parquet').set_index('code')
     return df
