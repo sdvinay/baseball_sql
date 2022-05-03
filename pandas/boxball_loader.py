@@ -87,7 +87,7 @@ def load_event_data(start_yr, end_yr, requested_columns, pa_only=True, game_type
 def load_appearances() -> pd.DataFrame:
     return pd.read_parquet('../data/baseballdatabank/appearances.parquet')
 
- def load_people() -> pd.DataFrame:
+def load_people() -> pd.DataFrame:
     return pd.read_parquet('../data/baseballdatabank/people.parquet')
 
 
