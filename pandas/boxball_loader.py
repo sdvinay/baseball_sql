@@ -29,7 +29,7 @@ class PlayerType(Flag):
 
 
 class Seasons:
-    __yrs__ : Sequence
+    __yrs__ : Sequence[int]
     MIN_YEAR = 1800
     MAX_YEAR = 3000
     All = range(MIN_YEAR, MAX_YEAR)
@@ -37,12 +37,6 @@ class Seasons:
     ALNL = range(1901, MAX_YEAR)
     Expansion = range(1961, MAX_YEAR)
  
-    def single(yr: int) -> Sequence:
-        return [yr]
-
-    def multiple(first_yr: int, last_yr: int) -> Sequence:
-        return range(first_yr, last_yr+1)
-
     def __init__(self, first_yr: int, last_yr: int = None) -> None:
         self.__yrs__ = range(first_yr, last_yr+1) if last_yr else [first_yr] 
 
