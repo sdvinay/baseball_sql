@@ -29,6 +29,7 @@ class PlayerType(Flag):
 
 
 class Seasons:
+    __yrs__ : Sequence
     MIN_YEAR = 1800
     MAX_YEAR = 3000
     All = range(MIN_YEAR, MAX_YEAR)
@@ -42,6 +43,8 @@ class Seasons:
     def multiple(first_yr: int, last_yr: int) -> Sequence:
         return range(first_yr, last_yr+1)
 
+    def __init__(self, first_yr: int, last_yr: int = None) -> None:
+        self.__yrs__ = range(first_yr, last_yr+1) if last_yr else [first_yr] 
 
 class CoalesceMode(Flag):
     PLAYER_CAREER = auto()
