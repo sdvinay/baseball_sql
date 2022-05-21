@@ -30,15 +30,18 @@ class PlayerType(Flag):
 
 class Seasons:
     __yrs__ : Sequence[int]
-    MIN_YEAR = 1800
-    MAX_YEAR = 3000
-    All = range(MIN_YEAR, MAX_YEAR)
-    Integration = range(1947, MAX_YEAR)
-    ALNL = range(1901, MAX_YEAR)
-    Expansion = range(1961, MAX_YEAR)
- 
     def __init__(self, first_yr: int, last_yr: int = None) -> None:
         self.__yrs__ = range(first_yr, last_yr+1) if last_yr else [first_yr] 
+
+    MIN_YEAR = 1800
+    MAX_YEAR = 3000
+
+class Eras:
+        All = Seasons(Seasons.MIN_YEAR, Seasons.MAX_YEAR)
+        ALNL = range(1901, Seasons.MAX_YEAR)
+        Integration = Seasons(1947, Seasons.MAX_YEAR)
+        Expansion = Seasons(1961, Seasons.MAX_YEAR)
+
 
 class CoalesceMode(Flag):
     PLAYER_CAREER = auto()
@@ -178,8 +181,8 @@ def filter_on_game_types(df, game_types: GameType) -> pd.DataFrame:
     return filtered
 
 # filter rows based on the requested years
-def filter_on_years(df, years: Sequence) -> pd.DataFrame:
-    return df[(df['yr'].isin(years))]
+def filter_on_years(df, seasons: Seasons) -> pd.DataFrame:
+    return df[(df['yr'].isin(seasons.__yrs__))]
 
 # filter rows based on the requested player_type
 def filter_on_player_types(df, player_types: PlayerType) -> pd.DataFrame:
@@ -197,11 +200,11 @@ def filter_on_player_types(df, player_types: PlayerType) -> pd.DataFrame:
         return pits
 
 
-def load_gamelogs(game_types: GameType, years: Sequence) -> pd.DataFrame:
+def load_gamelogs(game_types: GameType, seasons: Seasons) -> pd.DataFrame:
     df = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
 
     # filter rows based on the requested game_types
-    rows = filter_on_game_types(filter_on_years(df, years), game_types)
+    rows = filter_on_game_types(filter_on_years(df, seasons), game_types)
 
     return rows
 
@@ -214,11 +217,11 @@ def get_non_pitchers() -> pd.DataFrame:
     non_pitchers = career_apps[(career_apps['g_all']>2*career_apps['g_p'])].index
     return non_pitchers
 
-def load_gamelog_teams(game_types: GameType, years: Sequence) -> pd.DataFrame:
+def load_gamelog_teams(game_types: GameType, seasons: Seasons) -> pd.DataFrame:
     df = pd.read_parquet('../data/mine/gl_teams.parquet')
 
     # filter rows based on the requested game_types
-    rows = filter_on_game_types(filter_on_years(df, years), game_types)
+    rows = filter_on_game_types(filter_on_years(df, seasons), game_types)
 
     return rows
 
@@ -231,11 +234,11 @@ def load_teams() -> pd.DataFrame:
     df = pd.read_parquet('../data/baseballdatabank/teams.parquet')
     return df.rename(columns={'year_id': 'yr'})
 
-def load_annual_stats(stat_type: str, years: Sequence = Seasons.All, player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols = []) -> pd.DataFrame:
+def load_annual_stats(stat_type: str, seasons: Seasons = Eras.All, player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols = []) -> pd.DataFrame:
     parquet_file = f'../data/baseballdatabank/{stat_type}.parquet'
     df = pd.read_parquet(parquet_file)
     df = df.rename(columns={'year_id': 'yr'})
-    df = filter_on_years(df, years)
+    df = filter_on_years(df, seasons)
     df = filter_on_player_types(df, player_types)
     df = add_franchise_ids(df)
     if stat_type == 'pitching':  # Fix defect in BFP data for some Federal League pitchers
@@ -249,19 +252,19 @@ def load_annual_stats(stat_type: str, years: Sequence = Seasons.All, player_type
     return df
 
 
-def load_batting(years: Sequence = Seasons.All, player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols=[]) -> pd.DataFrame:
-    return load_annual_stats('batting', years, player_types, coalesce_type, drop_cols)
+def load_batting(seasons: Seasons = Eras.All, player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols=[]) -> pd.DataFrame:
+    return load_annual_stats('batting', seasons, player_types, coalesce_type, drop_cols)
 
 
-def load_pitching(years: Sequence = Seasons.All, player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols=[]) -> pd.DataFrame:
-    return load_annual_stats('pitching', years, player_types, coalesce_type, drop_cols)
+def load_pitching(seasons: Seasons = Eras.All, player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols=[]) -> pd.DataFrame:
+    return load_annual_stats('pitching', seasons, player_types, coalesce_type, drop_cols)
 
 
-def load_gamelog_starters(game_types, years: Sequence = Seasons.All) -> pd.DataFrame:
+def load_gamelog_starters(game_types, seasons: Seasons = Eras.All) -> pd.DataFrame:
     df = pd.read_parquet('../data/mine/gl_starters.parquet')
 
     # filter rows based on the requested game_types
-    rows = filter_on_game_types(filter_on_years(df, years), game_types)
+    rows = filter_on_game_types(filter_on_years(df, seasons), game_types)
 
     return rows
 
