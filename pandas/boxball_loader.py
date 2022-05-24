@@ -53,7 +53,7 @@ def fixup_event_data(df) -> pd.DataFrame:
     pa = pa.rename(columns={'h_fl': 'tb_ct'})
     pa['h_fl'] = np.where(pa['tb_ct']>0, 1, 0)
     pa['ob_fl'] = np.where(pa['event_cd'].isin([14, 16, 20, 21, 22, 23]), 1, 0)
-    pa['yr'] = pa['date'].apply (lambda dt: dt.year)
+    pa['yr'] = pa['date'].dt.year
     return pa
 
 def get_cache_filename(type, hash_key):
