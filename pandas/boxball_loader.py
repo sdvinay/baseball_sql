@@ -41,6 +41,9 @@ class Eras:
         ALNL = Seasons(1901, Seasons.MAX_YEAR)
         Integration = Seasons(1947, Seasons.MAX_YEAR)
         Expansion = Seasons(1961, Seasons.MAX_YEAR)
+        
+        def since(year: int) -> Seasons:
+            return Seasons(year, Seasons.MAX_YEAR)
 
 
 class CoalesceMode(Flag):
