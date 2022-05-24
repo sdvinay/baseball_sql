@@ -38,7 +38,7 @@ class Seasons:
 
 class Eras:
         All = Seasons(Seasons.MIN_YEAR, Seasons.MAX_YEAR)
-        ALNL = range(1901, Seasons.MAX_YEAR)
+        ALNL = Seasons(1901, Seasons.MAX_YEAR)
         Integration = Seasons(1947, Seasons.MAX_YEAR)
         Expansion = Seasons(1961, Seasons.MAX_YEAR)
 
