@@ -90,6 +90,15 @@ def load_appearances() -> pd.DataFrame:
 def load_people() -> pd.DataFrame:
     return pd.read_parquet('../data/baseballdatabank/people.parquet')
 
+def load_hall_of_famers() -> pd.DataFrame:
+    df = pd.read_csv('../data/bbref/hof.csv')
+
+    # The 'Name' field actually contains both a name and ID, so split those out
+    spl = df['Name'].str.split('\\', expand=True)
+    df['bbref_id'] = spl[1]
+    df['Name'] = spl[0]
+
+    return df
 
 dailies_cols_standard = ['game_id', 'game_dt', 'game_ct', 'appearance_dt', 'team_id',
        'player_id', 'slot_ct', 'seq_ct', 'home_fl', 'opponent_id',
