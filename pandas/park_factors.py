@@ -2,7 +2,7 @@ import pandas as pd
 import boxball_loader as bbl
 
 
-years = range(2010, 2020)
+years = bbl.Seasons(2010, 2020)
 stats = ['pa', 'runs_scored', 'hr', 's', 'd', 't', 'k', 'bb', 'ab']
 
 agg_cols = stats + ['g', 'length_in_outs']
