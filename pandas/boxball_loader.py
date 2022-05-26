@@ -41,6 +41,7 @@ class Eras:
         ALNL = Seasons(1901, Seasons.MAX_YEAR)
         Integration = Seasons(1947, Seasons.MAX_YEAR)
         Expansion = Seasons(1961, Seasons.MAX_YEAR)
+        PitchCount = Seasons(1988, Seasons.MAX_YEAR)
         Interleague = Seasons(1997, Seasons.MAX_YEAR)
         ThirtyTeams = Seasons(1998, Seasons.MAX_YEAR)
         ThirtyTeams162 = Seasons(1998, 2019)
