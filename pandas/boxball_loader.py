@@ -1,7 +1,7 @@
 from enum import Flag, auto
 
 import os.path
-from typing import Sequence
+from typing import List, Sequence
 
 import pandas as pd
 import numpy as np
@@ -28,10 +28,10 @@ class PlayerType(Flag):
     ALL = PITCHER | POSITION
 
 
-class Seasons:
-    __yrs__ : Sequence[int]
+class Seasons(List):
     def __init__(self, first_yr: int, last_yr: int = None) -> None:
-        self.__yrs__ = range(first_yr, last_yr+1) if last_yr else [first_yr] 
+        seq = range(first_yr, last_yr+1) if last_yr else [first_yr] 
+        super().__init__(seq)
 
     MIN_YEAR = 1800
     MAX_YEAR = 3000
@@ -97,7 +97,7 @@ def load_event_data(seasons: Seasons, requested_columns: Sequence[str], pa_only=
         ev = pd.read_parquet(cache_filepath)
     else:
         gm = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
-        gms = gm[(gm['yr'].isin(seasons.__yrs__))][['game_id', 'date', 'game_type']]
+        gms = gm[(gm['yr'].isin(seasons))][['game_id', 'date', 'game_type']]
         ev = pd.read_parquet('../data/retrosheet/event.parquet')[columns]
         ev = ev[(ev['game_id'].isin(gms.game_id))]
         ev = pd.merge(left=gms, right=ev, on='game_id')
@@ -189,7 +189,7 @@ def filter_on_game_types(df, game_types: GameType) -> pd.DataFrame:
 
 # filter rows based on the requested years
 def filter_on_years(df, seasons: Seasons) -> pd.DataFrame:
-    return df[(df['yr'].isin(seasons.__yrs__))]
+    return df[(df['yr'].isin(seasons))]
 
 # filter rows based on the requested player_type
 def filter_on_player_types(df, player_types: PlayerType) -> pd.DataFrame:
