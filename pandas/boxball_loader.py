@@ -84,16 +84,16 @@ def get_cache_filename(type, hash_key):
     
 
 # Cache event data
-def load_event_data(start_yr, end_yr, requested_columns, pa_only=True, game_types=GameType.RS) -> pd.DataFrame:
+def load_event_data(seasons: Seasons, requested_columns: Sequence[str], pa_only=True, game_types=GameType.RS) -> pd.DataFrame:
     required_cols = ['game_id', 'bat_event_fl', 'h_fl', 'event_cd', 'ab_fl']
     columns = list(set(required_cols+requested_columns))
-    hash_key = (tuple([start_yr, end_yr, tuple(sorted(columns))]))
+    hash_key = (tuple([seasons, tuple(sorted(columns))]))
     cache_filepath = get_cache_filename('event', hash_key)
     if os.path.isfile(cache_filepath):
         ev = pd.read_parquet(cache_filepath)
     else:
         gm = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
-        gms = gm[(gm['yr']>=start_yr) & (gm['yr']<=end_yr)][['game_id', 'date', 'game_type']]
+        gms = gm[(gm['yr'].isin(seasons.__yrs__))][['game_id', 'date', 'game_type']]
         ev = pd.read_parquet('../data/retrosheet/event.parquet')[columns]
         ev = ev[(ev['game_id'].isin(gms.game_id))]
         ev = pd.merge(left=gms, right=ev, on='game_id')
