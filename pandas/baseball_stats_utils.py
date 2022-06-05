@@ -14,9 +14,9 @@ def get_player_names_df(df: pd.DataFrame, idx_fld: str):
 def get_player_names_col(s: pd.Series, idx_fld: str):
     ppl = bbl.load_people()
     ppl['name'] = ppl['name_first']+ ' ' + ppl['name_last']
-    merged = pd.merge(left=s, right=ppl[[idx_fld, 'name']]
-                      , left_on=s.name, right_on=idx_fld)
-    merged.index = s.index
+    left = s.reset_index()
+    right = ppl[[idx_fld, 'name']]
+    merged = pd.merge(left, right, how='left', left_on=s.name, right_on=idx_fld).set_index('index')
     return merged['name']
 
 def get_player_names_idx(i: pd.Index, idx_fld: str):
