@@ -35,7 +35,7 @@ class Seasons(List):
         super().__init__(seq)
 
     MIN_YEAR = 1800
-    MAX_YEAR = 3000
+    MAX_YEAR = 2020
 
 class Eras:
         All = Seasons(Seasons.MIN_YEAR, Seasons.MAX_YEAR)
