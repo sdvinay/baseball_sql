@@ -3,6 +3,7 @@ from enum import Flag, auto
 import os.path
 from typing import List, Sequence
 
+import datetime
 import pandas as pd
 import numpy as np
 
@@ -294,3 +295,14 @@ def load_dailies_pit(game_types: GameType) -> pd.DataFrame:
 def get_event_code_descriptions() -> pd.DataFrame:
     df = pd.read_parquet('../data/retrosheet/code_event.parquet').set_index('code')
     return df
+
+
+def load_birthdates(idx_field: str = 'player_id') -> pd.DataFrame:
+    birthdate_cols = ['birth_year', 'birth_month', 'birth_day']
+    def compute_birthdate(person):
+        return datetime.datetime(*[int(person[col]) for col in birthdate_cols]).date()
+
+    ppl = load_people().set_index(idx_field)[birthdate_cols].dropna()
+    birthdates = ppl.apply(compute_birthdate, axis=1).rename('birthdate')
+    return birthdates
+
