@@ -297,10 +297,11 @@ def get_event_code_descriptions() -> pd.DataFrame:
     return df
 
 
-def load_birthdates(idx_field: str = 'player_id') -> pd.DataFrame:
+def load_birthdates(idx_field: str = 'player_id') -> pd.Series:
     birthdate_cols = ['birth_year', 'birth_month', 'birth_day']
     def compute_birthdate(person):
-        return datetime.datetime(*[int(person[col]) for col in birthdate_cols]).date()
+        dt = datetime.datetime(*[int(person[col]) for col in birthdate_cols]).date()
+        return pd.to_datetime(dt)
 
     ppl = load_people().set_index(idx_field)[birthdate_cols].dropna()
     birthdates = ppl.apply(compute_birthdate, axis=1).rename('birthdate')
