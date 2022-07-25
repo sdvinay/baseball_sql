@@ -113,6 +113,9 @@ def load_appearances() -> pd.DataFrame:
 def load_people() -> pd.DataFrame:
     return pd.read_parquet('../data/baseballdatabank/people.parquet')
 
+def load_managers() -> pd.DataFrame:
+    return pd.read_parquet('../data/baseballdatabank/managers.parquet')
+
 def load_hall_of_famers() -> pd.DataFrame:
     df = pd.read_csv('../data/bbref/hof.csv')
 
