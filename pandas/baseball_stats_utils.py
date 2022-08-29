@@ -40,8 +40,11 @@ def summarize_events(pa, groupby):
 
     # These stats are counts of the event code
     event_cd_mapper = {3: 'k', 14: 'bb', 15: 'ibb', 23: 'hr'}
-    counts = groups['event_cd'].value_counts().unstack()[event_cd_mapper.keys()].rename(columns=event_cd_mapper)
-    for col in counts.columns:
+    event_cds = [k for k in event_cd_mapper.keys() if k in pa['event_cd'].unique()]
+    counts = groups['event_cd'].value_counts().unstack()[event_cds].rename(columns=event_cd_mapper)
+    for col in event_cd_mapper.values():
+        if col not in counts.columns:
+            counts[col] = 0
         counts[col] = counts[col].fillna(0).astype(int)
 
     # Combine and add rate stats
