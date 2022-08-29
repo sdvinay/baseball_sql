@@ -11,6 +11,7 @@ import numpy as np
 import pickle
 import hashlib
 
+BASE_DATA_DIR = '/Users/vinay/dev/baseball_sql/data'
 
 class GameType(Flag):
     RS = auto()
@@ -84,7 +85,7 @@ def fixup_event_data(df: pd.DataFrame) -> pd.DataFrame:
 def get_cache_filename(type, hash_key):
     s = pickle.dumps(hash_key)
     hash_val = hashlib.sha224(s).hexdigest()
-    cache_filepath = f'../data/cache/{type}_{hash_val}.parquet'
+    cache_filepath = f'{BASE_DATA_DIR}/cache/{type}_{hash_val}.parquet'
     return cache_filepath
     
 
@@ -98,7 +99,7 @@ def load_event_data(seasons: Seasons, requested_columns: Sequence[str], pa_only=
         ev = pd.read_parquet(cache_filepath)
     else:
         def load_event_data_season(season: int, columns: Sequence[str]) -> pd.DataFrame:
-            ev_yr = pd.read_parquet(f'../data/retrosheet/event_yearly/event_{season}.parquet')[columns]
+            ev_yr = pd.read_parquet(f'{BASE_DATA_DIR}/retrosheet/event_yearly/event_{season}.parquet')[columns]
             return ev_yr
         ev = pd.concat([load_event_data_season(yr, columns) for yr in seasons])
         ev.to_parquet(cache_filepath)
@@ -108,16 +109,16 @@ def load_event_data(seasons: Seasons, requested_columns: Sequence[str], pa_only=
     return ev
 
 def load_appearances() -> pd.DataFrame:
-    return pd.read_parquet('../data/baseballdatabank/appearances.parquet')
+    return pd.read_parquet(f'{BASE_DATA_DIR}/baseballdatabank/appearances.parquet')
 
 def load_people() -> pd.DataFrame:
-    return pd.read_parquet('../data/baseballdatabank/people.parquet')
+    return pd.read_parquet(f'{BASE_DATA_DIR}/baseballdatabank/people.parquet')
 
 def load_managers() -> pd.DataFrame:
-    return pd.read_parquet('../data/baseballdatabank/managers.parquet')
+    return pd.read_parquet(f'{BASE_DATA_DIR}/baseballdatabank/managers.parquet')
 
 def load_hall_of_famers() -> pd.DataFrame:
-    df = pd.read_csv('../data/bbref/hof.csv')
+    df = pd.read_csv(f'{BASE_DATA_DIR}/bbref/hof.csv')
 
     # The 'Name' field actually contains both a name and ID, so split those out
     spl = df['Name'].str.split('\\', expand=True)
@@ -210,7 +211,7 @@ def filter_on_player_types(df, player_types: PlayerType) -> pd.DataFrame:
 
 
 def load_gamelogs(game_types: GameType, seasons: Seasons) -> pd.DataFrame:
-    df = pd.read_parquet('../data/mine/gamelog_enhanced.parquet')
+    df = pd.read_parquet(f'{BASE_DATA_DIR}/mine/gamelog_enhanced.parquet')
 
     # filter rows based on the requested game_types
     rows = filter_on_game_types(filter_on_years(df, seasons), game_types)
@@ -227,7 +228,7 @@ def get_non_pitchers() -> pd.DataFrame:
     return non_pitchers
 
 def load_gamelog_teams(game_types: GameType, seasons: Seasons) -> pd.DataFrame:
-    df = pd.read_parquet('../data/mine/gl_teams.parquet')
+    df = pd.read_parquet(f'{BASE_DATA_DIR}/mine/gl_teams.parquet')
 
     # filter rows based on the requested game_types
     rows = filter_on_game_types(filter_on_years(df, seasons), game_types)
@@ -235,16 +236,16 @@ def load_gamelog_teams(game_types: GameType, seasons: Seasons) -> pd.DataFrame:
     return rows
 
 def load_people() -> pd.DataFrame:
-    df = pd.read_parquet('../data/baseballdatabank/people.parquet')
+    df = pd.read_parquet(f'{BASE_DATA_DIR}/baseballdatabank/people.parquet')
     return df
 
 
 def load_teams() -> pd.DataFrame:
-    df = pd.read_parquet('../data/baseballdatabank/teams.parquet')
+    df = pd.read_parquet(f'{BASE_DATA_DIR}/baseballdatabank/teams.parquet')
     return df.rename(columns={'year_id': 'yr'})
 
 def load_annual_stats(stat_type: str, seasons: Seasons = Eras.All, player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols = []) -> pd.DataFrame:
-    parquet_file = f'../data/baseballdatabank/{stat_type}.parquet'
+    parquet_file = f'{BASE_DATA_DIR}/baseballdatabank/{stat_type}.parquet'
     df = pd.read_parquet(parquet_file)
     df = df.rename(columns={'year_id': 'yr'})
     df = filter_on_years(df, seasons)
@@ -270,7 +271,7 @@ def load_pitching(seasons: Seasons = Eras.All, player_types=PlayerType.ALL, coal
 
 
 def load_gamelog_starters(game_types, seasons: Seasons = Eras.All) -> pd.DataFrame:
-    df = pd.read_parquet('../data/mine/gl_starters.parquet')
+    df = pd.read_parquet(f'{BASE_DATA_DIR}/mine/gl_starters.parquet')
 
     # filter rows based on the requested game_types
     rows = filter_on_game_types(filter_on_years(df, seasons), game_types)
@@ -279,7 +280,7 @@ def load_gamelog_starters(game_types, seasons: Seasons = Eras.All) -> pd.DataFra
 
 
 def load_dailies(game_types: GameType) -> pd.DataFrame:
-    df = pd.read_parquet('../data/mine/daily.parquet')
+    df = pd.read_parquet(f'{BASE_DATA_DIR}/mine/daily.parquet')
     
     # filter rows based on the requested game_types
     rows = filter_on_game_types(df, game_types)
@@ -296,7 +297,7 @@ def load_dailies_pit(game_types: GameType) -> pd.DataFrame:
         return df[df['p_g']>0]
 
 def get_event_code_descriptions() -> pd.DataFrame:
-    df = pd.read_parquet('../data/retrosheet/code_event.parquet').set_index('code')
+    df = pd.read_parquet(f'{BASE_DATA_DIR}/retrosheet/code_event.parquet').set_index('code')
     return df
 
 
