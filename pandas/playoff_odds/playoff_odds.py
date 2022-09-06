@@ -71,7 +71,7 @@ def get_league_structure():
 # Weight each playoff seed, for various purposes
 weights = {}
 # Championship weights by seed position
-weights['champ_shares'] = dict(enumerate([i/8 for i in [1, 1, .56, .56, .44, .44]], 1))
+weights['champ_shares'] = dict(enumerate([.135, .13, .07, .065, .05, .05], 1))
 # Home-game likelihood.  Top 4 seeds get home games, bottom two have to win the wild card series
 weights['home_game'] = dict(enumerate([1, 1, 1, 1, .44, .44], 1))
 
