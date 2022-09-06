@@ -68,8 +68,12 @@ def get_league_structure():
     return teams
 
 
+# Weight each playoff seed, for various purposes
+weights = {}
 # Championship weights by seed position
-weights = dict(enumerate([i/8 for i in [1, 1, .56, .56, .44, .44]], 1))
+weights['champ_shares'] = dict(enumerate([i/8 for i in [1, 1, .56, .56, .44, .44]], 1))
+# Home-game likelihood.  Top 4 seeds get home games, bottom two have to win the wild card series
+weights['home_game'] = dict(enumerate([1, 1, 1, 1, .44, .44], 1))
 
 # Count the number of div/wc/playoff appearances by team from a set of results
 def summarize_sim_results(df_results):
@@ -81,7 +85,10 @@ def summarize_sim_results(df_results):
 
     summary['div_wins'] = summary[range(1, 4)].sum(axis=1)
     summary['playoffs'] = summary[range(1, 7)].sum(axis=1)
-    summary['champ_shares'] = (summary[range(1,7)] * np.array(weights)).sum(axis=1)
+    
+    # Generate a column for each set of weights defined
+    for col in weights.keys():
+        summary[col] = (summary[range(1,7)] * np.array(weights[col])).sum(axis=1)
     return summary
 
 
