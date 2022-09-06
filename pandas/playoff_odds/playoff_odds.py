@@ -69,9 +69,7 @@ def get_league_structure():
 
 
 # Championship weights by seed position
-weights = {i: 1/16 for i in range(1,7)}
-weights[1] = 1/8
-weights[2] = 1/8
+weights = dict(enumerate([i/8 for i in [1, 1, .56, .56, .44, .44]], 1))
 
 # Count the number of div/wc/playoff appearances by team from a set of results
 def summarize_sim_results(df_results):
