@@ -68,16 +68,16 @@ def get_league_structure():
     return teams
 
 
-# Count the number of div/wc/playoff appearances by team from a set of results
 # Championship weights by seed position
 weights = {i: 1/16 for i in range(1,7)}
 weights[1] = 1/8
 weights[2] = 1/8
 
+# Count the number of div/wc/playoff appearances by team from a set of results
 def summarize_sim_results(df_results):
     counts = df_results.query('lg_rank <= 6').reset_index()[['team', 'lg_rank']].value_counts().unstack()
-    mean_wins = df_results.groupby('team')['W'].mean().rename('mean_wins')
-    summary = pd.merge(left=mean_wins, right=counts, on='team', how='left')
+    wins = df_results.groupby('team')['W'].agg(['mean', 'max', 'min'])
+    summary = pd.merge(left=wins, right=counts, on='team', how='left')
     for col in counts.columns:
         summary[col] = summary[col].fillna(0).astype(int)    
 
