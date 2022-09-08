@@ -47,7 +47,16 @@ def add_playoff_seeds(standings, randoms):
 
     # Set div_win False as default, then set it True for div winners
     standings['div_win'] = False
-    standings.loc[sorted.groupby('div').head(1).index, 'div_win'] = True
+    # Manually iterating over the rows and looking for new divisions,
+    # and breaking when we've seen all 6 is much faster than the 
+    # pandas one-liner with groupby and head.
+    divs_seen = []
+    for index, row in sorted.iterrows():
+        if row['div'] not in divs_seen:
+            standings.loc[index, 'div_win'] = True 
+            divs_seen.append(row['div'])
+            if len(divs_seen)==6:
+                break
     standings['lg_rank'] = standings.sort_values(by=['div_win', 'wpct', 'rand'], ascending=False).groupby('lg').cumcount()+1
     return standings.sort_values(['lg', 'lg_rank'])
 
