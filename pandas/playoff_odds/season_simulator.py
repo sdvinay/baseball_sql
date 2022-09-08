@@ -26,7 +26,7 @@ def add_playoff_seeds(standings, randoms):
     standings['wpct'] = standings['W'] / (standings['W'] + standings['L'])
 
     # Merge in the div/lg data
-    teams = get_league_structure()
+    teams = league_structure.copy()
     standings['div'] = teams['div']
     standings['lg'] = teams['lg']
 
@@ -68,6 +68,7 @@ def get_league_structure():
     teams['lg'] = teams['div'].str[0]
     return teams
 
+league_structure = get_league_structure()
 
 # Weight each playoff seed, for various purposes
 weights = {}
