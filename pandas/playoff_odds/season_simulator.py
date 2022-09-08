@@ -153,12 +153,16 @@ def sim_both_ways(incoming_standings, game_id, num_iterations, remain):
     return diff
 
 
-def main(num_trials: int = 100):
+def main(num_trials: int = 100, save_output: bool = True, id: str = 'foo'):
+    print(f'Simulating {num_trials} seasons as ID {id}')
     (played, remain) = get_games()
     cur_standings = compute_standings(played)
     sim_results = sim_n_seasons(cur_standings, remain, num_trials)
     summary = summarize_sim_results(sim_results)
     print(summary.sort_values('champ_shares', ascending=False).to_string())
+
+    if save_output:
+        sim_results.reset_index().to_feather(f'output/{id}.feather')
 
 if __name__ == "__main__":
     typer.run(main) 
