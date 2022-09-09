@@ -103,16 +103,10 @@ def summarize_sim_results(df_results):
     return summary
 
 
-# Repeatable random inputs
-random_inputs = {}
-NUM_RANDOMS_PER_ITERATION = 1200
-def get_randoms(iteration: int) -> pd.Series:
-    if iteration not in random_inputs:
-        # Generate a random number for each game
-        randoms = pd.Series(np.random.rand(NUM_RANDOMS_PER_ITERATION))
-        random_inputs[iteration] = randoms
-    
-    return random_inputs[iteration]
+# Get new random numbers every time, to avoid weird reuse issues
+def get_randoms(iteration: int, num_randoms=1200) -> pd.Series:
+    randoms = pd.Series(np.random.rand(num_randoms))
+    return randoms
 
 
 def sim_rem_games(remain: pd.DataFrame, randoms: pd.Series):
@@ -168,6 +162,7 @@ def main(num_seasons: int = 100, save_output: bool = True, id: str = 'foo', show
     (played, remain) = get_games()
     cur_standings = compute_standings(played)
     sim_results = sim_n_seasons(cur_standings, remain, num_seasons)
+    sim_results['job_id'] = id
 
     if show_summary:
         summary = summarize_sim_results(sim_results)
