@@ -28,7 +28,7 @@ def sim_seasons(num_seasons: int, id: int):
 
 def get_job_size_distribution():
     num_seasons_on_avg = 1000
-    num_steps = 25
+    num_steps = 9
     step_size = int(num_seasons_on_avg/num_steps)
     one_way_range = int((num_steps-1)/2)*step_size
     lo = num_seasons_on_avg-one_way_range
@@ -36,7 +36,7 @@ def get_job_size_distribution():
     print(range(lo, hi))
     num_seasons_distribution = list(range(lo, hi+step_size, step_size))
     random.shuffle(num_seasons_distribution)
-    return num_seasons_distribution
+    return [num_seasons_on_avg] + num_seasons_distribution
 
 
 @print_perf_counter
