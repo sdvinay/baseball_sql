@@ -1,5 +1,6 @@
 # Functions that implement the logic for monte carlo playoff odds
 
+import os
 import typer
 import pandas as pd
 import numpy as np
@@ -157,6 +158,12 @@ def sim_both_ways(incoming_standings, game_id, num_iterations, remain):
     return diff
 
 
+def gather_results():
+    sim_results = pd.concat([pd.read_feather(f'output/{filename}') for filename in os.listdir('output/')], axis=0)
+    sim_results['run_id'] = sim_results['job_id'].astype(int)*10000 + sim_results['iter']
+    sim_results = sim_results.set_index(['run_id', 'team'])[['W', 'L', 'wpct', 'div', 'lg', 'rand', 'div_win', 'lg_rank']]
+    return sim_results
+    
 def main(num_seasons: int = 100, save_output: bool = True, id: str = 'foo', show_summary: bool = True):
     print(f'Simulating {num_seasons} seasons as ID {id}')
     (played, remain) = get_games()

@@ -24,7 +24,7 @@ def get_job_size_distribution():
     return num_seasons_distribution
 
 def summarize_data(num_jobs: int):
-    sim_results = pd.concat([pd.read_feather(f'output/{id}.feather') for id in range(num_jobs)], axis=0)
+    sim_results = sim.gather_results()
     summary = sim.summarize_sim_results(sim_results)
     print(summary.sort_values('champ_shares', ascending=False).to_string())
 
