@@ -7,6 +7,21 @@ import random
 import season_simulator as sim
 
 
+def print_perf_counter(func):
+    '''
+    create a timing decorator function
+    use
+    @print_timing
+    just above the function you want to time
+    '''
+    def wrapper(*arg):
+        start = time.perf_counter()
+        result = func(*arg)
+        end = time.perf_counter()
+        print(f'{func.__name__} took {round(end-start, 2)} second(s)')
+        return result
+    return wrapper
+
 def sim_seasons(num_seasons: int, id: int):
     sim.main(id = str(id), show_summary=False, num_seasons=num_seasons)
     return id
@@ -23,12 +38,15 @@ def get_job_size_distribution():
     random.shuffle(num_seasons_distribution)
     return num_seasons_distribution
 
-def summarize_data(num_jobs: int):
+
+@print_perf_counter
+def summarize_data():
     sim_results = sim.gather_results()
     summary = sim.summarize_sim_results(sim_results)
     print(summary.sort_values('champ_shares', ascending=False).to_string())
 
 
+@print_perf_counter
 def parallel_driver(num_jobs):
     num_seasons_distribution = get_job_size_distribution()
     with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -43,15 +61,8 @@ def parallel_driver(num_jobs):
 
 
 def main(num_jobs: int = 100):
-    start = time.perf_counter()
     parallel_driver(num_jobs)
-    end = time.perf_counter()
-    print(f'Finished simulation in {round(end-start, 2)} second(s)')
-
-    start = time.perf_counter()
-    summarize_data(num_jobs)
-    end = time.perf_counter()
-    print(f'Finished summarization in {round(end-start, 2)} second(s)')
+    summarize_data()
 
 
 if __name__ == '__main__':
