@@ -23,6 +23,12 @@ def get_job_size_distribution():
     random.shuffle(num_seasons_distribution)
     return num_seasons_distribution
 
+def summarize_data(num_jobs: int):
+    sim_results = pd.concat([pd.read_feather(f'output/{id}.feather') for id in range(num_jobs)], axis=0)
+    summary = sim.summarize_sim_results(sim_results)
+    print(summary.sort_values('champ_shares', ascending=False).to_string())
+
+
 def main(num_jobs: int = 100):
     start = time.perf_counter()
 
@@ -37,13 +43,13 @@ def main(num_jobs: int = 100):
         for f in concurrent.futures.as_completed(futures):
             print(f'Job {f.result()} completed')
 
-
-    sim_results = pd.concat([pd.read_feather(f'output/{id}.feather') for id in range(num_jobs)], axis=0)
-    summary = sim.summarize_sim_results(sim_results)
-    print(summary.sort_values('champ_shares', ascending=False).to_string())
-
     end = time.perf_counter()
-    print(f'Finished in {round(end-start, 2)} second(s)')
+    print(f'Finished simulation in {round(end-start, 2)} second(s)')
+
+    start = time.perf_counter()
+    summarize_data(num_jobs)
+    end = time.perf_counter()
+    print(f'Finished summarization in {round(end-start, 2)} second(s)')
 
 if __name__ == '__main__':
     typer.run(main)
