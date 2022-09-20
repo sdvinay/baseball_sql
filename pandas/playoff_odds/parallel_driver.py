@@ -29,9 +29,7 @@ def summarize_data(num_jobs: int):
     print(summary.sort_values('champ_shares', ascending=False).to_string())
 
 
-def main(num_jobs: int = 100):
-    start = time.perf_counter()
-
+def parallel_driver(num_jobs):
     num_seasons_distribution = get_job_size_distribution()
     with concurrent.futures.ProcessPoolExecutor() as executor:
         def submit_job(id):
@@ -43,6 +41,10 @@ def main(num_jobs: int = 100):
         for f in concurrent.futures.as_completed(futures):
             print(f'Job {f.result()} completed')
 
+
+def main(num_jobs: int = 100):
+    start = time.perf_counter()
+    parallel_driver(num_jobs)
     end = time.perf_counter()
     print(f'Finished simulation in {round(end-start, 2)} second(s)')
 
@@ -50,6 +52,7 @@ def main(num_jobs: int = 100):
     summarize_data(num_jobs)
     end = time.perf_counter()
     print(f'Finished summarization in {round(end-start, 2)} second(s)')
+
 
 if __name__ == '__main__':
     typer.run(main)
