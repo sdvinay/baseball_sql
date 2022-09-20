@@ -26,6 +26,8 @@ def sim_seasons(num_seasons: int, id: int):
     sim.main(id = str(id), show_summary=False, num_seasons=num_seasons)
     return id
 
+
+@print_perf_counter
 def get_job_size_distribution():
     num_seasons_on_avg = 1000
     num_steps = 9
