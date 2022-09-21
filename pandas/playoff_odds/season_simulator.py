@@ -22,44 +22,30 @@ def compute_standings(gms_played):
     standings = pd.concat([winners.value_counts().rename('W'), losers.value_counts().rename('L')], axis=1)
     return standings
 
-# find playoff teams
-def add_playoff_seeds(standings, randoms):
-    standings['wpct'] = standings['W'] / (standings['W'] + standings['L'])
+# Merge in league structure, and compute playoff seeding
+def process_sim_results(sim_results):
+    sim_results['run_id'] = sim_results['job_id'].astype(int)*10000 + sim_results['iter']
+    sim_results['wpct'] = sim_results['W'] / (sim_results['W'] + sim_results['L'])
 
     # Merge in the div/lg data
-    teams = league_structure.copy()
-    standings['div'] = teams['div']
-    standings['lg'] = teams['lg']
+    sim_results = pd.merge(left=sim_results, right=league_structure, left_on='team', right_index=True)
 
     # Rather than model out all the tie-breakers, I'm assuming that they are all random (not exactly true, but close enough),
     # and so I'm just generating a random number for each team, and we break ties by comparing that random num for each of the tied teams.
     # This is *so* much simpler and faster than modeling all the different scenarios.
     # It might be worth modeling them out with 1-2 days left in the season, but for most of the season, I way prefer using the random num to break ties
-    rands = randoms[0:len(standings)]
-    rands.index = standings.index
-    standings['rand'] = rands
+    sim_results['rand'] = np.random.rand(len(sim_results))
 
-    # Now sort, and break ties using the rand
-    sorted = standings.sort_values(by=['wpct', 'rand'], ascending=False)
+    sim_results = sim_results.set_index(['run_id', 'team'])[['W', 'L', 'wpct', 'div', 'lg', 'rand']]
 
-    # div_rank is nice to have, but somewhat expensive to compute
-    #standings['div_rank'] = sorted.groupby('div').cumcount()+1
-    #standings['div_win'] = standings['div_rank'] == 1
-
-    # Set div_win False as default, then set it True for div winners
-    standings['div_win'] = False
-    # Manually iterating over the rows and looking for new divisions,
-    # and breaking when we've seen all 6 is much faster than the 
-    # pandas one-liner with groupby and head.
-    divs_seen = []
-    for index, row in sorted.iterrows():
-        if row['div'] not in divs_seen:
-            standings.loc[index, 'div_win'] = True 
-            divs_seen.append(row['div'])
-            if len(divs_seen)==6:
-                break
-    standings['lg_rank'] = standings.sort_values(by=['div_win', 'wpct', 'rand'], ascending=False).groupby('lg').cumcount()+1
-    return standings.sort_values(['lg', 'lg_rank'])
+    # compute div_wins
+    div_winners = sim_results.sort_values(['wpct', 'rand'], ascending=False).groupby(['run_id', 'div']).head(1).index
+    sim_results['div_win'] = False
+    sim_results.loc[div_winners, 'div_win'] = True
+    
+    # compute WCs and seeding
+    sim_results['lg_rank'] = sim_results.sort_values(by=['div_win', 'wpct', 'rand'], ascending=False).groupby(['run_id', 'lg']).cumcount()+1
+    return sim_results
 
 
 # This is the source data for the mapping of teams to divisions/leagues
@@ -127,7 +113,6 @@ def sim_rem_games(remain: pd.DataFrame, randoms: pd.Series):
 def finish_one_season(incoming_standings, remain, randoms):
     rem_standings = sim_rem_games(remain, randoms)
     full_standings = incoming_standings+rem_standings
-    full_standings = add_playoff_seeds(full_standings, randoms)
     return full_standings
 
 def sim_1_season(incoming_standings, remain, i):
@@ -160,8 +145,7 @@ def sim_both_ways(incoming_standings, game_id, num_iterations, remain):
 
 def gather_results():
     sim_results = pd.concat([pd.read_feather(f'output/{filename}') for filename in os.listdir('output/')], axis=0)
-    sim_results['run_id'] = sim_results['job_id'].astype(int)*10000 + sim_results['iter']
-    sim_results = sim_results.set_index(['run_id', 'team'])[['W', 'L', 'wpct', 'div', 'lg', 'rand', 'div_win', 'lg_rank']]
+    sim_results = sim_results.set_index(['run_id', 'team'])
     return sim_results
     
 def main(num_seasons: int = 100, save_output: bool = True, id: str = 'foo', show_summary: bool = True):
@@ -176,6 +160,7 @@ def main(num_seasons: int = 100, save_output: bool = True, id: str = 'foo', show
         print(summary.sort_values('champ_shares', ascending=False).to_string())
 
     if save_output:
+        sim_results = process_sim_results(sim_results.reset_index())
         sim_results.reset_index().to_feather(f'output/{id}.feather')
 
 if __name__ == "__main__":
