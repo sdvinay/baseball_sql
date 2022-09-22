@@ -22,13 +22,35 @@ def compute_standings(gms_played):
     standings = pd.concat([winners.value_counts().rename('W'), losers.value_counts().rename('L')], axis=1)
     return standings
 
+(cur, remain) = get_games()
 
+def h2h_standings(games, teams):
+    return compute_standings(games.query('team1 in @teams and team2 in @teams'))
+
+
+tie_breakers = {}
 def break_tie(teams):
+    tm_key = tuple(sorted(list(teams)))
+    if tm_key not in tie_breakers:
+        standings = h2h_standings(cur, teams)
+        tie_breakers[tm_key] = standings.index.values
+    return tie_breakers[tm_key]
+
+tie_breakers = {}
+def break_tie(teams):
+<<<<<<< HEAD
     match sorted(list(teams)):
         case  ['ATL', 'NYM']:
             return ['NYM', 'ATL']
     return sorted(list(teams))
 
+=======
+    tm_key = tuple(sorted(list(teams)))
+    if tm_key not in tie_breakers:
+        standings = h2h_standings(cur, teams)
+        tie_breakers[tm_key] = standings.index.values
+    return tie_breakers[tm_key]
+>>>>>>> daa6a7d (Use h2h records to break ties)
 
 # Merge in league structure, and compute playoff seeding
 def process_sim_results(sim_results):
@@ -54,7 +76,6 @@ def process_sim_results(sim_results):
 
 
 def add_division_winners(sim_results):
-    div_winners = sim_results.sort_values(['wpct', 'rand'], ascending=False).groupby(['run_id', 'div']).head(1).index
     sim_results['div_win'] = False
 
     div_leading_wpct = sim_results.groupby(['run_id', 'div'])['wpct'].transform(max)
