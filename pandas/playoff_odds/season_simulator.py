@@ -38,12 +38,21 @@ def process_sim_results(sim_results):
 
     sim_results = sim_results.set_index(['run_id', 'team'])[['W', 'L', 'wpct', 'div', 'lg', 'rand']]
 
-    # compute div_wins
+    # compute div_wins and playoff seeds
+    add_division_winners(sim_results)
+    add_lg_ranks(sim_results)
+
+    return sim_results
+
+
+def add_division_winners(sim_results):
     div_winners = sim_results.sort_values(['wpct', 'rand'], ascending=False).groupby(['run_id', 'div']).head(1).index
     sim_results['div_win'] = False
     sim_results.loc[div_winners, 'div_win'] = True
-    
-    # compute WCs and seeding
+    return sim_results
+
+
+def add_lg_ranks(sim_results):
     sim_results['lg_rank'] = sim_results.sort_values(by=['div_win', 'wpct', 'rand'], ascending=False).groupby(['run_id', 'lg']).cumcount()+1
     return sim_results
 
