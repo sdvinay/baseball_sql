@@ -38,19 +38,11 @@ def break_tie(teams):
 
 tie_breakers = {}
 def break_tie(teams):
-<<<<<<< HEAD
-    match sorted(list(teams)):
-        case  ['ATL', 'NYM']:
-            return ['NYM', 'ATL']
-    return sorted(list(teams))
-
-=======
     tm_key = tuple(sorted(list(teams)))
     if tm_key not in tie_breakers:
         standings = h2h_standings(cur, teams)
         tie_breakers[tm_key] = standings.index.values
     return tie_breakers[tm_key]
->>>>>>> daa6a7d (Use h2h records to break ties)
 
 # Merge in league structure, and compute playoff seeding
 def process_sim_results(sim_results):
@@ -59,14 +51,7 @@ def process_sim_results(sim_results):
 
     # Merge in the div/lg data
     sim_results = pd.merge(left=sim_results, right=league_structure, left_on='team', right_index=True)
-
-    # Rather than model out all the tie-breakers, I'm assuming that they are all random (not exactly true, but close enough),
-    # and so I'm just generating a random number for each team, and we break ties by comparing that random num for each of the tied teams.
-    # This is *so* much simpler and faster than modeling all the different scenarios.
-    # It might be worth modeling them out with 1-2 days left in the season, but for most of the season, I way prefer using the random num to break ties
-    sim_results['rand'] = np.random.rand(len(sim_results))
-
-    sim_results = sim_results.set_index(['run_id', 'team'])[['W', 'L', 'wpct', 'div', 'lg', 'rand']]
+    sim_results = sim_results.set_index(['run_id', 'team'])[['W', 'L', 'wpct', 'div', 'lg']]
 
     # compute div_wins and playoff seeds
     add_division_winners(sim_results)
@@ -94,7 +79,13 @@ def add_division_winners(sim_results):
 
 
 def add_lg_ranks(sim_results):
-    sim_results['lg_rank'] = sim_results.sort_values(by=['div_win', 'wpct', 'rand'], ascending=False).groupby(['run_id', 'lg']).cumcount()+1
+    sim_results['tiebreak'] = 0
+    tied_tm_ct = sim_results.groupby(['run_id', 'lg', 'wpct'])['wpct'].transform('size')
+    tied_sets = sim_results[tied_tm_ct>1].reset_index().groupby(['run_id', 'lg', 'wpct'])['team'].apply(set)
+    tie_orders = tied_sets.apply(lambda tms: break_tie(tms)).explode()
+    tiebreak = (15 - tie_orders.groupby(['run_id', 'lg', 'wpct']).cumcount())
+    sim_results['tiebreak'] = pd.concat([tie_orders, tiebreak], axis=1).reset_index().set_index(['run_id', 'team'])[0]
+    sim_results['lg_rank'] = sim_results.sort_values(by=['div_win', 'wpct', 'tiebreak'], ascending=False).groupby(['run_id', 'lg']).cumcount()+1
     return sim_results
 
 
