@@ -90,16 +90,9 @@ def summarize_sim_results(df_results):
     return summary
 
 
-# Get new random numbers every time, to avoid weird reuse issues
-def get_randoms(iteration: int, num_randoms=1200) -> pd.Series:
-    randoms = pd.Series(np.random.rand(num_randoms))
-    return randoms
-
-
-def sim_rem_games(remain: pd.DataFrame, randoms: pd.Series):
+def sim_rem_games(remain: pd.DataFrame):
     # Figure out the winners and losers
-    rands = randoms[0:len(remain)]
-    rands.index = remain.index
+    rands = np.random.rand(len(remain))
     winners = pd.Series(np.where(rands<remain['rating_prob1'], remain['team1'], remain['team2']))
     losers = pd.Series(np.where(rands>remain['rating_prob1'], remain['team1'], remain['team2']))
 
@@ -110,14 +103,13 @@ def sim_rem_games(remain: pd.DataFrame, randoms: pd.Series):
     return standings
 
 
-def finish_one_season(incoming_standings, remain, randoms):
-    rem_standings = sim_rem_games(remain, randoms)
+def finish_one_season(incoming_standings, remain):
+    rem_standings = sim_rem_games(remain)
     full_standings = incoming_standings+rem_standings
     return full_standings
 
 def sim_1_season(incoming_standings, remain, i):
-    randoms = get_randoms(i)
-    standings = finish_one_season(incoming_standings, remain, randoms)
+    standings = finish_one_season(incoming_standings, remain)
     standings['iter'] = i
     standings = standings.reset_index().rename(columns={'index': 'team'}).set_index(['team', 'iter'])
     return standings
