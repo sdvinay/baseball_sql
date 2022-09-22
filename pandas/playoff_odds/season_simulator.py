@@ -22,6 +22,14 @@ def compute_standings(gms_played):
     standings = pd.concat([winners.value_counts().rename('W'), losers.value_counts().rename('L')], axis=1)
     return standings
 
+
+def break_tie(teams):
+    match sorted(list(teams)):
+        case  ['ATL', 'NYM']:
+            return ['NYM', 'ATL']
+    return sorted(list(teams))
+
+
 # Merge in league structure, and compute playoff seeding
 def process_sim_results(sim_results):
     sim_results['run_id'] = sim_results['job_id'].astype(int)*10000 + sim_results['iter']
@@ -48,7 +56,19 @@ def process_sim_results(sim_results):
 def add_division_winners(sim_results):
     div_winners = sim_results.sort_values(['wpct', 'rand'], ascending=False).groupby(['run_id', 'div']).head(1).index
     sim_results['div_win'] = False
-    sim_results.loc[div_winners, 'div_win'] = True
+
+    div_leading_wpct = sim_results.groupby(['run_id', 'div'])['wpct'].transform(max)
+    potential_div_winners = sim_results.query('wpct == @div_leading_wpct')
+    tied_team_ct = potential_div_winners.reset_index()[['run_id', 'div']].value_counts().rename("tied_teams")
+    potential_div_winners = pd.merge(left=potential_div_winners.reset_index(), right=tied_team_ct, on=['run_id', 'div']).set_index(['run_id', 'team'])
+    # outright division winners
+    outright_div_winners = potential_div_winners.query('tied_teams==1').index
+    sim_results.loc[outright_div_winners, 'div_win'] = True
+    # ties
+    tied_teams = potential_div_winners.query('tied_teams>1').reset_index()
+    tied_sets = tied_teams.groupby(['run_id', 'div'])['team'].apply(set)
+    tie_winners = tied_sets.apply(lambda tms: break_tie(tms)[0]).reset_index().set_index(['run_id', 'team']).index
+    sim_results.loc[tie_winners, 'div_win'] = True
     return sim_results
 
 
