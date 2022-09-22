@@ -46,7 +46,7 @@ def get_job_size_distribution():
 def summarize_data():
     sim_results = sim.gather_results()
     summary = sr.summarize_sim_results(sim_results)
-    print(summary.sort_values('champ_shares', ascending=False).to_string())
+    print(summary.to_string())
 
 
 @print_perf_counter
