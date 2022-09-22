@@ -59,8 +59,11 @@ def get_league_structure():
     NLC: STL MIL CHC PIT CIN
     '''
 
-    divs = {line.strip().split(': ')[0]: line.split(': ')[1].split(' ') for line in div_text.strip().split('\n')}
-    teams = pd.DataFrame(pd.concat([pd.Series({team: div for team in teams}) for (div, teams) in divs.items()]).rename('div'))
+    lines = [line.strip().split(': ') for line in div_text.strip().split('\n')]
+    div_map = {l[0]: l[1].split(' ') for l in lines} # a map of div names to lists of team names
+    div = pd.concat([pd.Series({team: div for team in teams}) for (div, teams) in div_map.items()])
+    teams = pd.DataFrame()
+    teams['div'] = div
     teams['lg'] = teams['div'].str[0]
     return teams
 
