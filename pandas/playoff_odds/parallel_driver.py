@@ -5,6 +5,7 @@ import typer
 import random
 
 import season_simulator as sim
+import summarize_results as sr
 
 
 def print_perf_counter(func):
@@ -44,7 +45,7 @@ def get_job_size_distribution():
 @print_perf_counter
 def summarize_data():
     sim_results = sim.gather_results()
-    summary = sim.summarize_sim_results(sim_results)
+    summary = sr.summarize_sim_results(sim_results)
     print(summary.sort_values('champ_shares', ascending=False).to_string())
 
 
