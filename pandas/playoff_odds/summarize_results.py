@@ -17,8 +17,8 @@ def summarize_sim_results(df_results):
     summary['playoffs'] = summary[range(1, 7)].sum(axis=1)
 
     # Restructure the results, and download ratings for computing the post-season
-    (wins, lg_ranks, tms_by_rank, wins_by_rank) = restructure_results(df_results)
-    cur, remain = sim.get_games()
+    tms_by_rank = df_results[['lg', 'lg_rank']].reset_index().set_index(['run_id', 'lg', 'lg_rank'])['team'].unstack(level='lg_rank')
+    _, remain = sim.get_games()
     ratings = remain[['team1', 'rating1_pre']].drop_duplicates().set_index('team1')['rating1_pre'].rename('rating').sort_values(ascending=False)
 
     # Compute pennant and championship shares

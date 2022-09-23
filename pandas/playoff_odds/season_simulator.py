@@ -66,13 +66,10 @@ def compute_standings_from_results(sim_results, incoming_standings):
     for col in standings.columns:
         standings[col] = standings[col].fillna(0).astype(int)
 
-    def iter_standings(i):
-        df = incoming_standings.copy()
-        df['iter'] = i
-        return df
-
     iters = standings.reset_index()['iter'].unique()
-    stds_iterated = pd.concat([iter_standings(i) for i in iters]).reset_index().set_index(['iter', 'team'])
+    stds_iterated = pd.concat([incoming_standings] * len(iters))
+    stds_iterated['iter'] = np.concatenate([np.repeat(i, len(incoming_standings)) for i in iters])
+    stds_iterated = stds_iterated.reset_index().set_index(['iter', 'team'])
     full_standings = stds_iterated + standings
     return full_standings
 
@@ -127,19 +124,15 @@ def get_league_structure():
 league_structure = get_league_structure()
 
 
-# i is the id for this run of the simulator.  Code that creates multiple runs should generate IDs
-def sim_games(games: pd.DataFrame, i = 0):
-    # Figure out the winners and losers
-    rands = np.random.rand(len(games))
-    winners = pd.Series(np.where(rands<games['rating_prob1'], games['team1'], games['team2']))
-    losers = pd.Series(np.where(rands>games['rating_prob1'], games['team1'], games['team2']))
-    results = pd.concat([winners.rename('W'), losers.rename('L')], axis=1)
-    results['iter'] = i
+def sim_n_seasons(games, n):
+    gms = pd.concat([games[['team1', 'team2', 'rating_prob1']]] * n)
+    gms['iter'] = np.concatenate([np.repeat(i, len(games)) for i in range(n)])
+
+    rands = np.random.rand(len(gms))
+    gm_results = np.where(rands<gms['rating_prob1'], (gms['team1'], gms['team2'], gms['iter']), (gms['team2'], gms['team1'], gms['iter']))
+    results = pd.DataFrame(gm_results).T
+    results.columns = ['W', 'L', 'iter']
     return results
-
-
-def sim_n_seasons(remain, n):
-    return pd.concat([sim_games(remain, i) for i in range(n)])
 
 
 def gather_results():
