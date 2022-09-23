@@ -20,6 +20,7 @@ def compute_standings(gms_played):
     winners = pd.Series(np.where(margins>0, gms_played['team1'], gms_played['team2']))
     losers  = pd.Series(np.where(margins<0, gms_played['team1'], gms_played['team2']))
     standings = pd.concat([winners.value_counts().rename('W'), losers.value_counts().rename('L')], axis=1)
+    standings.index.name = 'team'
     return standings
 
 (cur, remain) = get_games()
@@ -59,6 +60,21 @@ def process_sim_results(sim_results):
 
     return sim_results
 
+def compute_standings_from_results(sim_results, incoming_standings):
+    standings = pd.concat([sim_results.groupby('iter')[col].value_counts().rename(col) for col in ('W', 'L')], axis=1)
+    standings.index.names = ['iter', 'team']
+    for col in standings.columns:
+        standings[col] = standings[col].fillna(0).astype(int)
+
+    def iter_standings(i):
+        df = incoming_standings.copy()
+        df['iter'] = i
+        return df
+
+    iters = standings.reset_index()['iter'].unique()
+    stds_iterated = pd.concat([iter_standings(i) for i in iters]).reset_index().set_index(['iter', 'team'])
+    full_standings = stds_iterated + standings
+    return full_standings
 
 def add_division_winners(sim_results):
     sim_results['div_win'] = False
@@ -111,32 +127,19 @@ def get_league_structure():
 league_structure = get_league_structure()
 
 
-def sim_rem_games(remain: pd.DataFrame):
+# i is the id for this run of the simulator.  Code that creates multiple runs should generate IDs
+def sim_games(games: pd.DataFrame, i = 0):
     # Figure out the winners and losers
-    rands = np.random.rand(len(remain))
-    winners = pd.Series(np.where(rands<remain['rating_prob1'], remain['team1'], remain['team2']))
-    losers = pd.Series(np.where(rands>remain['rating_prob1'], remain['team1'], remain['team2']))
-
-    # Compute and return the standings
-    standings = pd.concat([winners.value_counts().rename('W'), losers.value_counts().rename('L')], axis=1)
-    for col in standings.columns: # convert to int
-        standings[col] = standings[col].fillna(0).astype(int)
-    return standings
+    rands = np.random.rand(len(games))
+    winners = pd.Series(np.where(rands<games['rating_prob1'], games['team1'], games['team2']))
+    losers = pd.Series(np.where(rands>games['rating_prob1'], games['team1'], games['team2']))
+    results = pd.concat([winners.rename('W'), losers.rename('L')], axis=1)
+    results['iter'] = i
+    return results
 
 
-def finish_one_season(incoming_standings, remain):
-    rem_standings = sim_rem_games(remain)
-    full_standings = incoming_standings+rem_standings
-    return full_standings
-
-def sim_1_season(incoming_standings, remain, i):
-    standings = finish_one_season(incoming_standings, remain)
-    standings['iter'] = i
-    standings = standings.reset_index().rename(columns={'index': 'team'}).set_index(['team', 'iter'])
-    return standings
-
-def sim_n_seasons(incoming_standings, remain, n):
-    return pd.concat([sim_1_season(incoming_standings, remain, i) for i in range(n)])
+def sim_n_seasons(remain, n):
+    return pd.concat([sim_games(remain, i) for i in range(n)])
 
 
 def gather_results():
@@ -144,16 +147,18 @@ def gather_results():
     sim_results = sim_results.set_index(['run_id', 'team'])
     return sim_results
     
-def main(num_seasons: int = 100, save_output: bool = True, id: str = 'foo', show_summary: bool = True):
+def main(num_seasons: int = 100, save_output: bool = True, id: int = 0, show_summary: bool = True):
     print(f'Simulating {num_seasons} seasons as ID {id}')
     (played, remain) = get_games()
     cur_standings = compute_standings(played)
-    sim_results = sim_n_seasons(cur_standings, remain, num_seasons)
+    sim_results = sim_n_seasons(remain, num_seasons)
     sim_results['job_id'] = id
 
     if save_output:
-        sim_results = process_sim_results(sim_results.reset_index())
-        sim_results.reset_index().to_feather(f'output/{id}.feather')
+        standings = compute_standings_from_results(sim_results, cur_standings)
+        standings['job_id'] = id
+        standings = process_sim_results(standings.reset_index())
+        standings.reset_index().to_feather(f'output/{id}.feather')
 
 if __name__ == "__main__":
     typer.run(main) 
