@@ -3,12 +3,9 @@ import numpy as np
 import season_simulator as sim
 import playoff_simulator as psim
 
-# Weight each playoff seed, for various purposes
-weights = {}
-# Home-game likelihood.  Top 4 seeds get home games, bottom two have to win the wild card series
-weights['home_game'] = dict(enumerate([1, 1, 1, 1, .44, .44], 1))
 
 # Count the number of div/wc/playoff appearances by team from a set of results
+# Compute other probabilities (pennant, championship, home game)
 def summarize_sim_results(df_results):
     counts = df_results.query('lg_rank <= 6').reset_index()[['team', 'lg_rank']].value_counts().unstack()
     wins = df_results.groupby('team')['W'].agg(['mean', 'max', 'min'])
@@ -18,10 +15,6 @@ def summarize_sim_results(df_results):
 
     summary['div_wins'] = summary[range(1, 4)].sum(axis=1)
     summary['playoffs'] = summary[range(1, 7)].sum(axis=1)
-    
-    # Generate a column for each set of weights defined
-    for col in weights.keys():
-        summary[col] = (summary[range(1,7)] * np.array(weights[col])).sum(axis=1)
 
     # Restructure the results, and download ratings for computing the post-season
     (wins, lg_ranks, tms_by_rank, wins_by_rank) = restructure_results(df_results)
@@ -33,7 +26,11 @@ def summarize_sim_results(df_results):
     ws_shares = compute_ws_shares(pennant_shares, ratings, summary['mean'])
     summary['ws_shares'] = pd.Series(ws_shares)
     summary['ws_shares'] = summary['ws_shares'].fillna(0)
-    
+
+    # Compute home games
+    # Play out the wild-card series
+    summary['home_game'] = compute_home_game_prob(summary, tms_by_rank, ratings)
+
     return summary.sort_values(['ws_shares', 'mean'], ascending=[False, False])
 
 def restructure_results(sim_results):
@@ -70,3 +67,22 @@ def compute_ws_shares(pennant_shares, ratings, wins):
             ws_shares[tms[1]] = ws_shares.get(tms[1], 0) + ((1-p) * likelihood)
 
     return ws_shares
+
+
+# For estimating likelihood of home games, let's play out the first-round series
+def compute_home_game_prob(summary, tms_by_rank, ratings):
+    # Top 4 seeds always get a home game
+    top_4 = summary[range(1, 5)].sum(axis=1)
+
+    # 5 and 6 need to advance in wild-card round
+    mapper = {3: 'h', 4: 'h', 5: 'a', 6: 'a'}
+    wc_series = pd.concat([tms_by_rank.loc[:,tms].rename(columns=mapper) for tms in ([3,6], [4,5])]).value_counts().rename('ct')
+
+    def compute_advance_counts(series):
+        p = 1-psim.p_series3(ratings[series.name[0]], ratings[series.name[1]])
+        return p * series['ct']
+
+    advances = pd.DataFrame(wc_series).apply(compute_advance_counts, axis=1).groupby('a').sum()
+
+    home_gms = top_4.add(advances, fill_value=0)
+    return home_gms
