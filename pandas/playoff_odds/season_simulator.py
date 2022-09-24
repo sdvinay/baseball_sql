@@ -4,6 +4,7 @@ import os
 import typer
 import pandas as pd
 import numpy as np
+import series_probs_compute as ssim
 
 def get_games_impl():
     # Read in the 538 dataset, which has a row for each game in the current season (played or unplayed)
@@ -129,11 +130,11 @@ league_structure = get_league_structure()
 
 
 def sim_n_seasons(games, n):
-    gms = pd.concat([games[['team1', 'team2', 'rating_prob1']]] * n)
+    gms = pd.concat([games[['team1', 'team2', 'win_prob']]] * n)
     gms['iter'] = np.concatenate([np.repeat(i, len(games)) for i in range(n)])
 
     rands = np.random.rand(len(gms))
-    gm_results = np.where(rands<gms['rating_prob1'], (gms['team1'], gms['team2'], gms['iter']), (gms['team2'], gms['team1'], gms['iter']))
+    gm_results = np.where(rands<gms['win_prob'], (gms['team1'], gms['team2'], gms['iter']), (gms['team2'], gms['team1'], gms['iter']))
     results = pd.DataFrame(gm_results).T
     results.columns = ['W', 'L', 'iter']
     return results
@@ -170,11 +171,20 @@ def gather_summaries():
     summary['max'] = summaries.groupby('team')['max'].max()
     summary['min'] = summaries.groupby('team')['min'].min()
     return summary
+
+def compute_probs(gms, ratings):
+    rating1 = pd.merge(left=remain, right=ratings, left_on='team1', right_index=True, how='left')['rating']
+    rating2 = pd.merge(left=remain, right=ratings, left_on='team2', right_index=True, how='left')['rating']
+    return ssim.p_game(rating1, rating2)    
     
+
 def main(num_seasons: int = 100, save_output: bool = False, save_summary: bool = True, save_ranks: bool = True, id: int = 0, show_summary: bool = True):
     print(f'Simulating {num_seasons} seasons as ID {id}')
     (played, remain) = get_games()
     cur_standings = compute_standings(played)
+    ratings = get_ratings(remain)
+    remain['win_prob'] = compute_probs(remain, ratings)
+
     sim_results = sim_n_seasons(remain, num_seasons)
     sim_results['job_id'] = id
 
