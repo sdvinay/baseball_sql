@@ -120,6 +120,10 @@ def gather_ranks():
     ranks = ranks.set_index(['run_id', 'lg'])
     return ranks
 
+def get_ratings(games):
+    ratings = games[['team1', 'rating1_pre']].drop_duplicates().set_index('team1')['rating1_pre']
+    return ratings.rename('rating').sort_values(ascending=False)
+
 
 def gather_summaries():
     summaries = pd.concat([pd.read_feather(f'output/summaries/{filename}') for filename in os.listdir('output/summaries/')], axis=0)
