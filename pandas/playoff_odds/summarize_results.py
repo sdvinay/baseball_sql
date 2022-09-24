@@ -13,11 +13,14 @@ def summarize_sim_results(df_results):
     for col in counts.columns:
         summary[col] = summary[col].fillna(0).astype(int)    
 
-    summary['div_wins'] = summary[range(1, 4)].sum(axis=1)
-    summary['playoffs'] = summary[range(1, 7)].sum(axis=1)
 
-    # Restructure the results, and download ratings for computing the post-season
-    tms_by_rank = df_results[['lg', 'lg_rank']].reset_index().set_index(['run_id', 'lg', 'lg_rank'])['team'].unstack(level='lg_rank')
+def augment_summary(summary, tms_by_rank):
+    summary['div_wins'] = summary[[f'r{i}' for i in range(1, 4)]].sum(axis=1)
+    summary['playoffs'] = summary[[f'r{i}' for i in range(1, 7)]].sum(axis=1)
+
+    summary['mean'] = summary['sum']/summary['len']
+
+    # Download ratings for computing the post-season
     _, remain = sim.get_games()
     ratings = remain[['team1', 'rating1_pre']].drop_duplicates().set_index('team1')['rating1_pre'].rename('rating').sort_values(ascending=False)
 
@@ -31,7 +34,8 @@ def summarize_sim_results(df_results):
     # Play out the wild-card series
     summary['home_game'] = compute_home_game_prob(summary, tms_by_rank, ratings)
 
-    return summary.sort_values(['ws_shares', 'mean'], ascending=[False, False])
+    cols = ['mean', 'max', 'min'] + [f'r{i}' for i in range(1, 7)] + ['div_wins', 'playoffs', 'ws_shares', 'home_game']
+    return summary[cols].sort_values(['ws_shares', 'mean'], ascending=False)
 
 def restructure_results(sim_results):
     wins = sim_results['W'].unstack(level='team')
@@ -49,7 +53,7 @@ def compute_pennant_shares(tms_by_rank, ratings):
 
     pennant_shares = {}
     for lg in ('N', 'A'):
-        fields = tms_by_rank.query("lg==@lg").loc[:,1:6].value_counts().rename("count")
+        fields = tms_by_rank.query("lg==@lg")[[f'r{i}' for i in range(1, 7)]].value_counts().rename("count")
         pennant_shares[lg]  = pd.DataFrame(fields).apply(compute_pennant_prob, axis=1).fillna(0).sum()
 
     return pennant_shares
@@ -71,6 +75,10 @@ def compute_ws_shares(pennant_shares, ratings, wins):
 
 # For estimating likelihood of home games, let's play out the first-round series
 def compute_home_game_prob(summary, tms_by_rank, ratings):
+    mapper = {f'r{i}': i for i in range(16)}
+    summary = summary.rename(columns=mapper)
+    tms_by_rank = tms_by_rank.rename(columns=mapper)
+
     # Top 4 seeds always get a home game
     top_4 = summary[range(1, 5)].sum(axis=1)
 

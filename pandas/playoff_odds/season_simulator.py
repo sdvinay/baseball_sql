@@ -60,6 +60,15 @@ def process_sim_results(sim_results):
 
     return sim_results
 
+def summarize_results(standings):
+    counts = standings.reset_index()[['team', 'lg_rank']].value_counts().unstack()
+    wins = standings.groupby('team')['W'].agg(['sum', 'max', 'min', len])
+    summary = pd.merge(left=wins, right=counts, on='team', how='left')
+    for col in counts.columns:
+        summary[col] = summary[col].fillna(0).astype(int)
+    return summary.rename(columns={i: f'r{i}' for i in range(100)})
+
+
 def compute_standings_from_results(sim_results, incoming_standings):
     standings = pd.concat([sim_results.groupby('iter')[col].value_counts().rename(col) for col in ('W', 'L')], axis=1)
     standings.index.names = ['iter', 'team']
@@ -134,24 +143,49 @@ def sim_n_seasons(games, n):
     results.columns = ['W', 'L', 'iter']
     return results
 
+def get_tm_ranks(standings):
+    tms_by_rank = standings[['lg', 'lg_rank']].reset_index().set_index(['run_id', 'lg', 'lg_rank'])['team'].unstack(level='lg_rank')
+    return tms_by_rank.rename(columns={i: f'r{i}' for i in range(100)})
 
 def gather_results():
-    sim_results = pd.concat([pd.read_feather(f'output/{filename}') for filename in os.listdir('output/')], axis=0)
+    sim_results = pd.concat([pd.read_feather(f'output/standings/{filename}') for filename in os.listdir('output/standings/')], axis=0)
     sim_results = sim_results.set_index(['run_id', 'team'])
     return sim_results
+
+def gather_ranks():
+    ranks = pd.concat([pd.read_feather(f'output/ranks/{filename}') for filename in os.listdir('output/ranks/')], axis=0)
+    ranks = ranks.set_index(['run_id', 'lg'])
+    return ranks
+
+
+def gather_summaries():
+    summaries = pd.concat([pd.read_feather(f'output/summaries/{filename}') for filename in os.listdir('output/summaries/')], axis=0)
+    summary = summaries.groupby('team').sum()
+    summary['max'] = summaries.groupby('team')['max'].max()
+    summary['min'] = summaries.groupby('team')['min'].min()
+    return summary
     
-def main(num_seasons: int = 100, save_output: bool = True, id: int = 0, show_summary: bool = True):
+def main(num_seasons: int = 100, save_output: bool = False, save_summary: bool = True, save_ranks: bool = True, id: int = 0, show_summary: bool = True):
     print(f'Simulating {num_seasons} seasons as ID {id}')
     (played, remain) = get_games()
     cur_standings = compute_standings(played)
     sim_results = sim_n_seasons(remain, num_seasons)
     sim_results['job_id'] = id
 
+    standings = compute_standings_from_results(sim_results, cur_standings)
+    standings['job_id'] = id
+    standings = process_sim_results(standings.reset_index())
+
     if save_output:
-        standings = compute_standings_from_results(sim_results, cur_standings)
-        standings['job_id'] = id
-        standings = process_sim_results(standings.reset_index())
-        standings.reset_index().to_feather(f'output/{id}.feather')
+        standings.reset_index().to_feather(f'output/standings/{id}.feather')
+
+    if save_summary:
+        summary = summarize_results(standings)
+        summary.reset_index().to_feather(f'output/summaries/{id}.feather')
+
+    if save_ranks:
+        tms_by_rank = get_tm_ranks(standings)
+        tms_by_rank.reset_index().to_feather(f'output/ranks/{id}.feather')
 
 if __name__ == "__main__":
     typer.run(main) 

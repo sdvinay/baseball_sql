@@ -44,9 +44,9 @@ def get_job_size_distribution():
 
 @print_perf_counter
 def summarize_data():
-    sim_results = sim.gather_results()
-    summary = sr.summarize_sim_results(sim_results)
-    print(summary.to_string())
+    summary = sim.gather_summaries()
+    tms_by_rank = sim.gather_ranks()
+    print(sr.augment_summary(summary, tms_by_rank).to_string())
 
 
 @print_perf_counter
