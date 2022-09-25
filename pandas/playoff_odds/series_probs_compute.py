@@ -51,8 +51,12 @@ def p_series5(r_home, r_away):
 def p_series7(r_home, r_away):
     return p_balanced_series(7, r_home, r_away)
 
+series_probs = {}
 def p_series(games, r_home, r_away):
-    if games == 3:
-        return p_series3(r_home, r_away)
-    else:
-        return p_balanced_series(games, r_home, r_away)
+    key = (games, (r_home-r_away))
+    if key not in series_probs:
+        if games == 3:
+            series_probs[key] = p_series3(r_home, r_away)
+        else:
+            series_probs[key] = p_balanced_series(games, r_home, r_away)
+    return series_probs[key]
