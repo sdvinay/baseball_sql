@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import season_simulator as sim
 import playoff_simulator as psim
+import datasource_538 as ds
 
 
 # Count the number of div/wc/playoff appearances by team from a set of results
@@ -20,9 +21,8 @@ def augment_summary(summary, tms_by_rank):
 
     summary['mean'] = summary['sum']/summary['len']
 
-    # Download ratings for computing the post-season
-    _, remain = sim.get_games()
-    ratings = sim.get_ratings(remain)
+    # Get ratings for computing the post-season
+    ratings = sim.ds.get_ratings()
 
     # Compute pennant and championship shares
     pennant_shares = compute_pennant_shares(tms_by_rank, ratings)

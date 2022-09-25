@@ -5,16 +5,8 @@ import typer
 import pandas as pd
 import numpy as np
 import series_probs_compute as ssim
+import datasource_538 as ds
 
-def get_games_impl():
-    # Read in the 538 dataset, which has a row for each game in the current season (played or unplayed)
-    gms = pd.read_csv('https://projects.fivethirtyeight.com/mlb-api/mlb_elo_latest.csv')
-    #gms = pd.read_csv('../data/538/mlb-elo/mlb_elo_latest.csv')
-
-    # Split out the games that have been played vs those remaining
-    played = gms.dropna(subset=['score1']) # games that have a score
-    remain = gms.loc[gms.index.difference(played.index)] # all other games
-    return (played, remain)
 
 def compute_standings(gms_played):
     margins = gms_played['score1']-gms_played['score2']
@@ -24,10 +16,6 @@ def compute_standings(gms_played):
     standings.index.name = 'team'
     return standings
 
-(cur, remain) = get_games_impl()
-
-def get_games():
-    return (cur, remain)
 
 def h2h_standings(games, teams):
     return compute_standings(games.query('team1 in @teams and team2 in @teams'))
@@ -37,7 +25,7 @@ tie_breakers = {}
 def break_tie(teams):
     tm_key = tuple(sorted(list(teams)))
     if tm_key not in tie_breakers:
-        standings = h2h_standings(cur, teams)
+        standings = h2h_standings(ds.get_games()[0], teams)
         tie_breakers[tm_key] = standings.index.values
     return tie_breakers[tm_key]
 
@@ -153,17 +141,6 @@ def gather_ranks():
     ranks = ranks.set_index(['run_id', 'lg'])
     return ranks
 
-def get_ratings(games):
-    def get_one_set_of_ratings(i):
-        cols_in = [f'team{i}', f'rating{i}_pre']
-        cols_out = ['team', 'rating']
-        df = games[cols_in]
-        df.columns = cols_out
-        return df
-    ratings = pd.concat([get_one_set_of_ratings(i) for i in (1,2)])
-    ratings = ratings.drop_duplicates().set_index('team')['rating']
-    return ratings.sort_values(ascending=False)
-
 
 def gather_summaries():
     summaries = pd.concat([pd.read_feather(f'output/summaries/{filename}') for filename in os.listdir('output/summaries/')], axis=0)
@@ -173,16 +150,16 @@ def gather_summaries():
     return summary
 
 def compute_probs(gms, ratings):
-    rating1 = pd.merge(left=remain, right=ratings, left_on='team1', right_index=True, how='left')['rating']
-    rating2 = pd.merge(left=remain, right=ratings, left_on='team2', right_index=True, how='left')['rating']
+    rating1 = pd.merge(left=gms, right=ratings, left_on='team1', right_index=True, how='left')['rating']
+    rating2 = pd.merge(left=gms, right=ratings, left_on='team2', right_index=True, how='left')['rating']
     return ssim.p_game(rating1, rating2)    
     
 
 def main(num_seasons: int = 100, save_output: bool = False, save_summary: bool = True, save_ranks: bool = True, id: int = 0, show_summary: bool = True):
     print(f'Simulating {num_seasons} seasons as ID {id}')
-    (played, remain) = get_games()
+    (played, remain) = ds.get_games()
     cur_standings = compute_standings(played)
-    ratings = get_ratings(remain)
+    ratings = ds.get_ratings()
     remain['win_prob'] = compute_probs(remain, ratings)
 
     sim_results = sim_n_seasons(remain, num_seasons)
