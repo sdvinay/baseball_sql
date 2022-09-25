@@ -22,7 +22,7 @@ def augment_summary(summary, tms_by_rank):
 
     # Download ratings for computing the post-season
     _, remain = sim.get_games()
-    ratings = remain[['team1', 'rating1_pre']].drop_duplicates().set_index('team1')['rating1_pre'].rename('rating').sort_values(ascending=False)
+    ratings = sim.get_ratings(remain)
 
     # Compute pennant and championship shares
     pennant_shares = compute_pennant_shares(tms_by_rank, ratings)

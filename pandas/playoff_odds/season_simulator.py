@@ -152,6 +152,17 @@ def gather_ranks():
     ranks = ranks.set_index(['run_id', 'lg'])
     return ranks
 
+def get_ratings(games):
+    def get_one_set_of_ratings(i):
+        cols_in = [f'team{i}', f'rating{i}_pre']
+        cols_out = ['team', 'rating']
+        df = games[cols_in]
+        df.columns = cols_out
+        return df
+    ratings = pd.concat([get_one_set_of_ratings(i) for i in (1,2)])
+    ratings = ratings.drop_duplicates().set_index('team')['rating']
+    return ratings.sort_values(ascending=False)
+
 
 def gather_summaries():
     summaries = pd.concat([pd.read_feather(f'output/summaries/{filename}') for filename in os.listdir('output/summaries/')], axis=0)
