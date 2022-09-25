@@ -40,14 +40,6 @@ def break_tie(teams):
         tie_breakers[tm_key] = standings.index.values
     return tie_breakers[tm_key]
 
-tie_breakers = {}
-def break_tie(teams):
-    tm_key = tuple(sorted(list(teams)))
-    if tm_key not in tie_breakers:
-        standings = h2h_standings(cur, teams)
-        tie_breakers[tm_key] = standings.index.values
-    return tie_breakers[tm_key]
-
 # Merge in league structure, and compute playoff seeding
 def process_sim_results(sim_results):
     sim_results['run_id'] = sim_results['job_id'].astype(int)*10000 + sim_results['iter']
