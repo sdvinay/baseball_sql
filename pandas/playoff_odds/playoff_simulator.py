@@ -1,5 +1,5 @@
 import pandas as pd
-import series_probs_compute as ssim
+import series_probs_approx as ssim
 
 # Compute probabilities of each team to win a playoff bracket
 # By iterating through all possible matchups and their likelihood
