@@ -66,7 +66,7 @@ def compute_ws_shares(pennant_shares, ratings, wins):
             likelihood = pennant_shares['A'][a]/pennant_shares['A'].sum() * pennant_shares['N'][n]
             key_func = lambda tm: wins[tm]
             tms = sorted([a, n], key=key_func, reverse=True)
-            p = psim.p_series7(ratings[tms[0]], ratings[tms[1]])
+            p = psim.ssim.p_series(7, ratings[tms[0]], ratings[tms[1]])
             ws_shares[tms[0]] = ws_shares.get(tms[0], 0) + (p * likelihood)
             ws_shares[tms[1]] = ws_shares.get(tms[1], 0) + ((1-p) * likelihood)
 
@@ -87,7 +87,7 @@ def compute_home_game_prob(summary, tms_by_rank, ratings):
     wc_series = pd.concat([tms_by_rank.loc[:,tms].rename(columns=mapper) for tms in ([3,6], [4,5])]).value_counts().rename('ct')
 
     def compute_advance_counts(series):
-        p = 1-psim.p_series3(ratings[series.name[0]], ratings[series.name[1]])
+        p = 1-psim.ssim.p_series(3, ratings[series.name[0]], ratings[series.name[1]])
         return p * series['ct']
 
     advances = pd.DataFrame(wc_series).apply(compute_advance_counts, axis=1).groupby('a').sum()
