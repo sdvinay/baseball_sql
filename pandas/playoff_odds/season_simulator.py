@@ -5,7 +5,7 @@ import typer
 import pandas as pd
 import numpy as np
 
-def get_games():
+def get_games_impl():
     # Read in the 538 dataset, which has a row for each game in the current season (played or unplayed)
     gms = pd.read_csv('https://projects.fivethirtyeight.com/mlb-api/mlb_elo_latest.csv')
     #gms = pd.read_csv('../data/538/mlb-elo/mlb_elo_latest.csv')
@@ -23,7 +23,10 @@ def compute_standings(gms_played):
     standings.index.name = 'team'
     return standings
 
-(cur, remain) = get_games()
+(cur, remain) = get_games_impl()
+
+def get_games():
+    return (cur, remain)
 
 def h2h_standings(games, teams):
     return compute_standings(games.query('team1 in @teams and team2 in @teams'))
