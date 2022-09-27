@@ -137,15 +137,17 @@ def compute_probs(gms, ratings):
     rating2 = pd.merge(left=gms, right=ratings, left_on='team2', right_index=True, how='left')['rating']
     return ssim.p_game(rating1, rating2)    
     
-def vary_ratings(ratings):
+def add_variation_to_ratings(ratings):
     offsets = (-100, 100, 0, 0)
     return ratings + np.random.choice(offsets, len(ratings))
 
-def main(num_seasons: int = 100, save_output: bool = False, save_summary: bool = True, save_ranks: bool = True, id: int = 0, show_summary: bool = True):
+def main(num_seasons: int = 100, save_output: bool = False, save_summary: bool = True, save_ranks: bool = True, id: int = 0, show_summary: bool = True, vary_ratings: bool = False):
     print(f'Simulating {num_seasons} seasons as ID {id}')
     (played, remain) = ds.get_games()
     cur_standings = compute_standings(played)
-    ratings = vary_ratings(ds.get_ratings())
+    ratings = ds.get_ratings()
+    if vary_ratings:
+        ratings = add_variation_to_ratings(ratings)
     remain['win_prob'] = compute_probs(remain, ratings)
 
     sim_results = sim_n_seasons(remain, num_seasons)

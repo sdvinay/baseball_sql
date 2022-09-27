@@ -23,8 +23,8 @@ def print_perf_counter(func):
         return result
     return wrapper
 
-def sim_seasons(num_seasons: int, id: int):
-    sim.main(id = str(id), show_summary=False, num_seasons=num_seasons)
+def sim_seasons(num_seasons: int, id: int, vary_ratings: bool):
+    sim.main(id = str(id), show_summary=False, num_seasons=num_seasons, vary_ratings=vary_ratings)
     return id
 
 
@@ -50,12 +50,12 @@ def summarize_data():
 
 
 @print_perf_counter
-def parallel_driver(num_jobs):
+def parallel_driver(num_jobs: int, vary_ratings: bool):
     num_seasons_distribution = get_job_size_distribution()
     with concurrent.futures.ProcessPoolExecutor() as executor:
         def submit_job(id):
             num_seasons = num_seasons_distribution[id%len(num_seasons_distribution)]
-            return executor.submit(sim_seasons, num_seasons, id)
+            return executor.submit(sim_seasons, num_seasons, id, vary_ratings)
 
         futures = [submit_job(id) for id in range(num_jobs)]
 
@@ -63,8 +63,8 @@ def parallel_driver(num_jobs):
             print(f'Job {f.result()} completed')
 
 
-def main(num_jobs: int = 100):
-    parallel_driver(num_jobs)
+def main(num_jobs: int = 100, vary_ratings: bool = True):
+    parallel_driver(num_jobs, vary_ratings)
     summarize_data()
 
 
