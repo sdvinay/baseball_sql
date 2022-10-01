@@ -14,7 +14,8 @@ def compute_standings(gms_played):
     losers  = pd.Series(np.where(margins<0, gms_played['team1'], gms_played['team2']))
     standings = pd.concat([winners.value_counts().rename('W'), losers.value_counts().rename('L')], axis=1)
     standings.index.name = 'team'
-    return standings
+    standings['wpct'] = standings['W']/standings.sum(axis=1)
+    return standings.sort_values('wpct', ascending=False)
 
 
 def h2h_standings(games, teams):
@@ -159,7 +160,7 @@ def main(num_seasons: int = 100, save_output: bool = False, save_summary: bool =
 
     if save_output:
         standings.reset_index().to_feather(f'output/standings/{id}.feather')
-
+        sim_results.reset_index().to_feather(f'output/games/{id}.feather')
     if save_summary:
         summary = summarize_results(standings)
         summary.reset_index().to_feather(f'output/summaries/{id}.feather')
