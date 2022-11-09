@@ -67,10 +67,10 @@ CoalesceMode_Groupby = {
     CoalesceMode.PLAYER_CAREER: ['player_id'],
     CoalesceMode.PLAYER_SEASON: ['player_id', 'yr'],
     CoalesceMode.PLAYER_SEASON_LEAGUE: ['player_id', 'yr', 'lg_id'],
-    CoalesceMode.PLAYER_SEASON_TEAM: ['player_id', 'yr', 'team_id'],
+    CoalesceMode.PLAYER_SEASON_TEAM: ['player_id', 'yr', 'team_id', 'franch_id'],
     CoalesceMode.PLAYER_CAREER_FRANCHISE: ['player_id', 'franch_id'],
     CoalesceMode.PLAYER_CAREER_LEAGUE: ['player_id', 'lg_id'],
-    CoalesceMode.SEASON_TEAM: ['yr', 'team_id', 'lg_id']
+    CoalesceMode.SEASON_TEAM: ['yr', 'team_id', 'lg_id', 'franch_id']
 }
 
 
