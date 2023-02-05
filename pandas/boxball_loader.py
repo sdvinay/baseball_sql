@@ -12,6 +12,8 @@ import pickle
 import hashlib
 
 BASE_DATA_DIR = '/Users/vinay/dev/baseball_sql/data'
+RETROSHEET_DIR = f'{BASE_DATA_DIR}/retrosheet/2022'
+BASEBALL_DATABANK_DIR = f'{BASE_DATA_DIR}/baseballdatabank/2022'
 
 class GameType(Flag):
     RS = auto()
@@ -36,7 +38,7 @@ class Seasons(List):
         super().__init__(seq)
 
     MIN_YEAR = 1800
-    MAX_YEAR = 2020
+    MAX_YEAR = 2022
 
 class Eras:
         All = Seasons(Seasons.MIN_YEAR, Seasons.MAX_YEAR)
@@ -99,7 +101,7 @@ def load_event_data(seasons: Seasons, requested_columns: Sequence[str], pa_only=
         ev = pd.read_parquet(cache_filepath)
     else:
         def load_event_data_season(season: int, columns: Sequence[str]) -> pd.DataFrame:
-            ev_yr = pd.read_parquet(f'{BASE_DATA_DIR}/retrosheet/event_yearly/event_{season}.parquet')[columns]
+            ev_yr = pd.read_parquet(f'{RETROSHEET_DIR}/event_yearly/event_{season}.parquet')[columns]
             return ev_yr
         ev = pd.concat([load_event_data_season(yr, columns) for yr in seasons])
         ev.to_parquet(cache_filepath)
@@ -109,13 +111,13 @@ def load_event_data(seasons: Seasons, requested_columns: Sequence[str], pa_only=
     return ev
 
 def load_appearances() -> pd.DataFrame:
-    return pd.read_parquet(f'{BASE_DATA_DIR}/baseballdatabank/appearances.parquet')
+    return pd.read_parquet(f'{BASEBALL_DATABANK_DIR}/appearances.parquet')
 
 def load_people() -> pd.DataFrame:
-    return pd.read_parquet(f'{BASE_DATA_DIR}/baseballdatabank/people.parquet')
+    return pd.read_parquet(f'{BASEBALL_DATABANK_DIR}/people.parquet')
 
 def load_managers() -> pd.DataFrame:
-    return pd.read_parquet(f'{BASE_DATA_DIR}/baseballdatabank/managers.parquet')
+    return pd.read_parquet(f'{BASEBALL_DATABANK_DIR}/managers.parquet')
 
 def load_hall_of_famers() -> pd.DataFrame:
     df = pd.read_csv(f'{BASE_DATA_DIR}/bbref/hof.csv')
@@ -236,27 +238,30 @@ def load_gamelog_teams(game_types: GameType, seasons: Seasons) -> pd.DataFrame:
     return rows
 
 def load_people() -> pd.DataFrame:
-    df = pd.read_parquet(f'{BASE_DATA_DIR}/baseballdatabank/people.parquet')
+    df = pd.read_parquet(f'{BASEBALL_DATABANK_DIR}/people.parquet')
     return df
 
 
 def load_teams() -> pd.DataFrame:
-    df = pd.read_parquet(f'{BASE_DATA_DIR}/baseballdatabank/teams.parquet')
+    df = pd.read_parquet(f'{BASEBALL_DATABANK_DIR}/teams.parquet')
     return df.rename(columns={'year_id': 'yr'})
 
 def load_annual_stats(stat_type: str, seasons: Seasons = Eras.All, player_types=PlayerType.ALL, coalesce_type=CoalesceMode.NONE, drop_cols = []) -> pd.DataFrame:
-    parquet_file = f'{BASE_DATA_DIR}/baseballdatabank/{stat_type}.parquet'
+    parquet_file = f'{BASEBALL_DATABANK_DIR}/{stat_type}.parquet'
     df = pd.read_parquet(parquet_file)
     df = df.rename(columns={'year_id': 'yr'})
     df = filter_on_years(df, seasons)
     df = filter_on_player_types(df, player_types)
-    df = add_franchise_ids(df)
     if stat_type == 'pitching':  # Fix defect in BFP data for some Federal League pitchers
         df.loc[(df['bfp']==0)&(df['lg_id']=='FL'), 'bfp'] = np.NaN
     if len(drop_cols) > 0:
         df = df.dropna(subset = drop_cols)
+    cols = df.columns[5:]
+    df = add_franchise_ids(df)
+    for col in cols:
+        if df[col].isna().sum() == 0:
+            df[col] = df[col].astype(int)
     if coalesce_type != CoalesceMode.NONE:
-        cols = df.columns[5:]
         df = df.groupby(CoalesceMode_Groupby[coalesce_type])[cols].sum()
 
     return df
@@ -297,7 +302,7 @@ def load_dailies_pit(game_types: GameType) -> pd.DataFrame:
         return df[df['p_g']>0]
 
 def get_event_code_descriptions() -> pd.DataFrame:
-    df = pd.read_parquet(f'{BASE_DATA_DIR}/retrosheet/code_event.parquet').set_index('code')
+    df = pd.read_parquet(f'{RETROSHEET_DIR}/code_event.parquet').set_index('code')
     return df
 
 
