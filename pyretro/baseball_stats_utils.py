@@ -1,5 +1,5 @@
 import pandas as pd
-import boxball_loader as bbl
+from pyretro import boxball_loader as bbl
 
 def create_bbref_boxscore_url(game_id):
     return f'https://www.baseball-reference.com/boxes/{game_id[0:3]}/{game_id}.shtml'
