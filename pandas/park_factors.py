@@ -7,7 +7,7 @@ stats = ['pa', 'runs_scored', 'hr', 's', 'd', 't', 'k', 'bb', 'ab']
 
 agg_cols = stats + ['g', 'length_in_outs']
 
-def get_gamelogs(years):
+def get_gamelogs(years: bbl.Seasons) -> pd.DataFrame:
     # Narrow to years and regular-season games
     df = bbl.load_gamelogs(bbl.GameType.RS, years)
 
@@ -49,7 +49,7 @@ def compute_home_road_totals(gl):
     return home_game_totals, away_game_totals
 
 
-def get_pfs(years, min_games = 0):
+def get_pfs(years: bbl.Seasons, min_games = 0):
     gl = get_gamelogs(years)
     primary_parks = find_primary_parks(gl)
 
