@@ -39,7 +39,7 @@ def summarize_events(pa, groupby):
     sums = groups[columns].sum().rename(columns=column_map)
 
     # These stats are counts of the event code
-    event_cd_mapper = {3: 'k', 14: 'bb', 15: 'ibb', 23: 'hr'}
+    event_cd_mapper = {23: 'hr', 3: 'k', 14: 'bb', 15: 'ibb', 16: 'hbp'}
     event_cds = [k for k in event_cd_mapper.keys() if k in pa['event_cd'].unique()]
     counts = groups['event_cd'].value_counts().unstack()[event_cds].rename(columns=event_cd_mapper)
     for col in event_cd_mapper.values():
