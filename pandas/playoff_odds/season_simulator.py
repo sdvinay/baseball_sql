@@ -4,9 +4,9 @@ import os
 import typer
 import pandas as pd
 import numpy as np
-import random
-import series_probs_compute as ssim
+import series_probs_compute as probs
 import datasource_538 as ds
+import random
 
 
 def compute_standings(gms_played):
@@ -83,7 +83,7 @@ def add_division_winners(sim_results):
     sim_results.loc[outright_div_winners, 'div_win'] = True
     # ties
     tied_teams = potential_div_winners.query('tied_teams>1').reset_index()
-    if len(tied_teams) > 0:
+    if len(tied_teams)>0:
         tied_sets = tied_teams.groupby(['run_id', 'div'])['team'].apply(set)
         tie_winners = tied_sets.apply(lambda tms: break_tie(tms)[0]).reset_index().set_index(['run_id', 'team']).index
         sim_results.loc[tie_winners, 'div_win'] = True
@@ -144,7 +144,7 @@ def gather_summaries():
 def compute_probs(gms, ratings):
     rating1 = pd.merge(left=gms, right=ratings, left_on='team1', right_index=True, how='left')['rating']
     rating2 = pd.merge(left=gms, right=ratings, left_on='team2', right_index=True, how='left')['rating']
-    return ssim.p_game(rating1, rating2)    
+    return probs.p_game(rating1, rating2)    
     
 def add_variation_to_ratings(ratings):
     offsets = (-100, 100, 0, 0)
