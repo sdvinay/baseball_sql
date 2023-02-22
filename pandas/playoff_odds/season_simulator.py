@@ -83,7 +83,7 @@ def add_division_winners(sim_results):
     sim_results.loc[outright_div_winners, 'div_win'] = True
     # ties
     tied_teams = potential_div_winners.query('tied_teams>1').reset_index()
-    if len(tied_teams) > 0:
+    if len(tied_teams)>0:
         tied_sets = tied_teams.groupby(['run_id', 'div'])['team'].apply(set)
         tie_winners = tied_sets.apply(lambda tms: break_tie(tms)[0]).reset_index().set_index(['run_id', 'team']).index
         sim_results.loc[tie_winners, 'div_win'] = True

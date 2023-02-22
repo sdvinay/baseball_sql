@@ -2,14 +2,16 @@ import pandas as pd
 
 def get_games_impl():
     # Read in the 538 dataset, which has a row for each game in the current season (played or unplayed)
-    gms = pd.read_csv('https://projects.fivethirtyeight.com/mlb-api/mlb_elo_latest.csv')
-    #gms = pd.read_csv('../data/538/mlb-elo/mlb_elo_latest.csv')
+    #gms = pd.read_csv('https://projects.fivethirtyeight.com/mlb-api/mlb_elo_latest.csv')
+    gms = pd.read_csv('../../data/538/mlb-elo/mlb_elo_latest.csv')
 
     # Split out the games that have been played vs those remaining
-    played = gms.dropna(subset=['score1']) # games that have a score
-    remain = gms.loc[gms.index.difference(played.index)] # all other games
+    played_cols = ['team1', 'team2', 'score1', 'score2']
+    remain_cols = ['team1', 'team2', 'rating_prob1', 'rating1_pre', 'rating2_pre']
+    played = gms.dropna(subset=['score1'])[played_cols] # games that have a score
+    remain = gms.loc[gms.index.difference(played.index)][remain_cols].rename(columns={'rating_prob1': 'win_prob'}) # all other games
     ratings = get_ratings_impl(remain)
-    return (played[['team1', 'team2', 'score1', 'score2']], remain[['team1', 'team2']], ratings)
+    return (played, remain, ratings)
 
 def get_ratings_impl(games):
     def get_one_set_of_ratings(i):
