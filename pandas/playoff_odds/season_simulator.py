@@ -4,8 +4,12 @@ import os
 import typer
 import pandas as pd
 import numpy as np
+<<<<<<< HEAD
 import random
 import series_probs_compute as ssim
+=======
+import series_probs_compute as probs
+>>>>>>> eb39587 (minor cleanup)
 import datasource_538 as ds
 
 
@@ -144,7 +148,7 @@ def gather_summaries():
 def compute_probs(gms, ratings):
     rating1 = pd.merge(left=gms, right=ratings, left_on='team1', right_index=True, how='left')['rating']
     rating2 = pd.merge(left=gms, right=ratings, left_on='team2', right_index=True, how='left')['rating']
-    return ssim.p_game(rating1, rating2)    
+    return probs.p_game(rating1, rating2)    
     
 def add_variation_to_ratings(ratings):
     offsets = (-100, 100, 0, 0)
