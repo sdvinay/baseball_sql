@@ -4,6 +4,7 @@ import os
 import typer
 import pandas as pd
 import numpy as np
+import random
 import series_probs_compute as ssim
 import datasource_538 as ds
 
@@ -22,13 +23,16 @@ def h2h_standings(games, teams):
     return compute_standings(games.query('team1 in @teams and team2 in @teams'))
 
 
-tie_breakers = {}
+#tie_breakers = {}
+#def break_tie(teams):
+#   tm_key = tuple(sorted(list(teams)))
+#   if tm_key not in tie_breakers:
+#       standings = h2h_standings(ds.get_games()[0], teams)
+#       tie_breakers[tm_key] = standings.index.values
+#   return tie_breakers[tm_key]
 def break_tie(teams):
-    tm_key = tuple(sorted(list(teams)))
-    if tm_key not in tie_breakers:
-        standings = h2h_standings(ds.get_games()[0], teams)
-        tie_breakers[tm_key] = standings.index.values
-    return tie_breakers[tm_key]
+    return random.sample(teams, len(teams))
+
 
 # Merge in league structure, and compute playoff seeding
 def process_sim_results(sim_results):
