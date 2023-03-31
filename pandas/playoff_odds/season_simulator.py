@@ -12,7 +12,7 @@ def compute_standings(gms_played):
     margins = gms_played['score1']-gms_played['score2']
     winners = pd.Series(np.where(margins>0, gms_played['team1'], gms_played['team2']))
     losers  = pd.Series(np.where(margins<0, gms_played['team1'], gms_played['team2']))
-    standings = pd.concat([winners.value_counts().rename('W'), losers.value_counts().rename('L')], axis=1)
+    standings = pd.concat([winners.value_counts().rename('W'), losers.value_counts().rename('L')], axis=1).fillna(0)
     standings.index.name = 'team'
     standings['wpct'] = standings['W']/standings.sum(axis=1)
     return standings.sort_values('wpct', ascending=False)
