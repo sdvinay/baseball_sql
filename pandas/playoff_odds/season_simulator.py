@@ -79,20 +79,24 @@ def add_division_winners(sim_results):
     sim_results.loc[outright_div_winners, 'div_win'] = True
     # ties
     tied_teams = potential_div_winners.query('tied_teams>1').reset_index()
-    tied_sets = tied_teams.groupby(['run_id', 'div'])['team'].apply(set)
-    tie_winners = tied_sets.apply(lambda tms: break_tie(tms)[0]).reset_index().set_index(['run_id', 'team']).index
-    sim_results.loc[tie_winners, 'div_win'] = True
+    if len(tied_teams) > 0:
+        tied_sets = tied_teams.groupby(['run_id', 'div'])['team'].apply(set)
+        tie_winners = tied_sets.apply(lambda tms: break_tie(tms)[0]).reset_index().set_index(['run_id', 'team']).index
+        sim_results.loc[tie_winners, 'div_win'] = True
     return sim_results
 
 
 def add_lg_ranks(sim_results):
     sim_results['tiebreak'] = 0
     tied_tm_ct = sim_results.groupby(['run_id', 'lg', 'wpct'])['wpct'].transform('size')
-    tied_sets = sim_results[tied_tm_ct>1].reset_index().groupby(['run_id', 'lg', 'wpct'])['team'].apply(set)
-    tie_orders = tied_sets.apply(lambda tms: break_tie(tms)).explode()
-    tiebreak = (15 - tie_orders.groupby(['run_id', 'lg', 'wpct']).cumcount())
-    sim_results['tiebreak'] = pd.concat([tie_orders, tiebreak], axis=1).reset_index().set_index(['run_id', 'team'])[0]
-    sim_results['lg_rank'] = sim_results.sort_values(by=['div_win', 'wpct', 'tiebreak'], ascending=False).groupby(['run_id', 'lg']).cumcount()+1
+    if sum(tied_tm_ct) > 0:
+        tied_sets = sim_results[tied_tm_ct>1].reset_index().groupby(['run_id', 'lg', 'wpct'])['team'].apply(set)
+        tie_orders = tied_sets.apply(lambda tms: break_tie(tms)).explode()
+        tiebreak = (15 - tie_orders.groupby(['run_id', 'lg', 'wpct']).cumcount())
+        sim_results['tiebreak'] = pd.concat([tie_orders, tiebreak], axis=1).reset_index().set_index(['run_id', 'team'])[0]
+        sim_results['lg_rank'] = sim_results.sort_values(by=['div_win', 'wpct', 'tiebreak'], ascending=False).groupby(['run_id', 'lg']).cumcount()+1
+    else:
+        sim_results['lg_rank'] = sim_results.sort_values(by=['div_win', 'wpct'], ascending=False).groupby(['run_id', 'lg']).cumcount()+1
     return sim_results
 
 
