@@ -242,6 +242,11 @@ def load_people() -> pd.DataFrame:
     return df
 
 
+def load_games() -> pd.DataFrame:
+    df = pd.read_parquet(f'{RETROSHEET_DIR}/game.parquet')
+    return df
+
+
 def load_teams() -> pd.DataFrame:
     df = pd.read_parquet(f'{BASEBALL_DATABANK_DIR}/teams.parquet')
     return df.rename(columns={'year_id': 'yr'})
