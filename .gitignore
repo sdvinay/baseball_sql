@@ -1,0 +1,9 @@
+*.swp
+.DS_Store
+.vscode
+data/
+.ipynb_checkpoints
+*.zip
+**/__pycache__
+**/*.ipynb
+**/output/
