@@ -7,3 +7,6 @@ data/
 **/__pycache__
 **/*.ipynb
 **/output/
+
+# For local pip installs
+*.egg-info
